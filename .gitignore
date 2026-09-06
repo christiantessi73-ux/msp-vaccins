@@ -1,0 +1,8 @@
+# Sauvegardes de la refonte
+*.old
+
+# Dossier préparé pour Netlify Drop (inutile avec GitHub Pages)
+dist/
+
+# Photo de l'affiche du comptoir : document de travail, pas un fichier du site
+*.jpg

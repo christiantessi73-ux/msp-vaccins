@@ -1,0 +1,702 @@
+/* =========================================================
+   Recommandations Vaccinales — MSP Route de Vienne
+   ========================================================= */
+
+:root {
+    --primary: #1B7A8A;
+    --primary-light: #2c9db0;
+    --secondary: #FFFFFF;
+    --accent: #4F72B7;
+    --background: #F6FBFF;
+    --text-dark: #333333;
+    --text-gray: #666666;
+    --border-color: #e0e0e0;
+    --warning: #f5a623;
+    /* Orange assombri pour rester lisible en petit corps sur fond blanc */
+    --warning-text: #A85D00;
+    --success: #28a745;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    --shadow-hover: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --transition: all 0.25s ease;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--background);
+    color: var(--text-dark);
+    line-height: 1.6;
+    padding: 20px 20px 100px;
+}
+
+/* ========================= En-tête ========================= */
+header {
+    text-align: center;
+    padding-top: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+h1 {
+    color: var(--primary);
+    font-size: 1.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.subtitle {
+    color: var(--text-gray);
+    font-size: 0.95rem;
+}
+
+/* ========================= Structure ========================= */
+.container {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+/* Deux colonnes : formulaire à gauche, résultats collants à droite */
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+}
+
+#step-vaccins {
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
+@media (max-width: 960px) {
+    .layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    #step-vaccins {
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
+}
+
+.section-card {
+    background: var(--secondary);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.layout .section-card {
+    margin-bottom: 0;
+}
+
+/* ========================= Titres d'étape ========================= */
+h2 {
+    color: var(--accent);
+    font-size: 1.35rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.step-num {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.step-num-light {
+    background: #fff;
+    color: var(--primary);
+}
+
+/* ========================= Formulaire ========================= */
+.form-group {
+    margin-bottom: 1.5rem;
+    border: none;
+}
+
+label,
+legend {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+    color: var(--text-dark);
+}
+
+.radio-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.radio-card {
+    position: relative;
+    margin-bottom: 0;
+}
+
+.radio-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 1rem;
+    background: var(--secondary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 500;
+}
+
+.radio-card input[type="radio"]:checked + .radio-label {
+    border-color: var(--primary);
+    background: rgba(27, 122, 138, 0.06);
+    color: var(--primary);
+}
+
+.radio-card input[type="radio"]:focus-visible + .radio-label {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.status-icon {
+    color: var(--success);
+    font-size: 1rem;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.status-icon.visible {
+    opacity: 1;
+}
+
+/* ========================= Cases à cocher ========================= */
+.checkbox-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 0;
+    cursor: pointer;
+    font-weight: 400;
+    line-height: 1.45;
+}
+
+.checkbox-container[hidden] {
+    display: none;
+}
+
+.checkbox-container input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin-top: 3px;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.checkbox-container em {
+    color: var(--text-gray);
+    font-style: normal;
+    font-size: 0.9em;
+}
+
+.toggle-situations {
+    padding: 0.9rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.toggle-situations:hover {
+    border-color: var(--primary-light);
+}
+
+.checkbox-text {
+    font-weight: 600;
+}
+
+/* ================= Liste des situations ================= */
+.situations-list {
+    display: none;
+    margin-top: 1rem;
+    padding: 1.25rem;
+    background: #f9fbfc;
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--accent);
+    animation: slideDown 0.25s ease forwards;
+}
+
+.situations-list.active {
+    display: block;
+}
+
+.situation-group {
+    border: none;
+    margin-bottom: 1.5rem;
+}
+
+.situation-group:last-of-type {
+    margin-bottom: 0.5rem;
+}
+
+.situation-group legend {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border-color);
+    width: 100%;
+}
+
+.situation-group legend i {
+    font-size: 1rem;
+}
+
+.situation-group .checkbox-container {
+    margin-bottom: 0.9rem;
+}
+
+.sub-question {
+    display: none;
+    margin: -0.4rem 0 0.9rem 36px;
+    padding: 0.75rem 1rem;
+    background: #fff;
+    border: 1px dashed var(--accent);
+    border-radius: var(--radius-sm);
+}
+
+.sub-question.active {
+    display: block;
+    animation: slideDown 0.25s ease forwards;
+}
+
+.sub-question .checkbox-container {
+    margin-bottom: 0;
+    font-size: 0.95rem;
+}
+
+.shortcut-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background-color: #e9ecef;
+    color: #495057;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-right: 8px;
+    border: 1px solid #ced4da;
+    vertical-align: middle;
+}
+
+.shortcut-hint {
+    font-size: 0.8rem;
+    color: var(--text-gray);
+    margin-top: 0.5rem;
+}
+
+kbd {
+    background: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 3px;
+    padding: 0 4px;
+    font-size: 0.75rem;
+}
+
+/* ========================= Messages ========================= */
+.hint-msg,
+.warning-msg {
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+    align-items: center;
+    gap: 10px;
+}
+
+.hint-msg {
+    background: #fff3cd;
+    color: #856404;
+    display: flex;
+}
+
+.warning-msg {
+    background: #f8d7da;
+    color: #721c24;
+    display: none;
+}
+
+.hint-msg i,
+.warning-msg i {
+    color: inherit;
+    flex: 0 0 auto;
+}
+
+/* ========================= Résultats ========================= */
+.result-count {
+    display: none;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--primary);
+    background: rgba(27, 122, 138, 0.08);
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.25rem;
+}
+
+.vaccine-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.vaccine-card {
+    background: var(--secondary);
+    border: 1px solid var(--border-color);
+    border-left: 5px solid var(--primary);
+    border-radius: var(--radius-sm);
+    padding: 1.1rem 1.2rem;
+    transition: var(--transition);
+    animation: fadeIn 0.3s ease forwards;
+}
+
+.vaccine-card.special {
+    border-left-color: var(--warning);
+}
+
+.vaccine-card:hover {
+    box-shadow: var(--shadow);
+}
+
+.vaccine-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.vaccine-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-dark);
+}
+
+.badges {
+    display: flex;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+.badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.badge-age {
+    background: rgba(27, 122, 138, 0.12);
+    color: var(--primary);
+}
+
+.badge-situation {
+    background: rgba(245, 166, 35, 0.16);
+    color: #8a5a00;
+}
+
+.vaccine-short {
+    font-size: 0.93rem;
+    color: var(--text-gray);
+    margin-top: 0.3rem;
+}
+
+.vaccine-why {
+    list-style: none;
+    margin-top: 0.6rem;
+}
+
+.vaccine-why li {
+    font-size: 0.82rem;
+    color: var(--warning-text);
+    padding-left: 16px;
+    position: relative;
+}
+
+.vaccine-why li::before {
+    content: "•";
+    position: absolute;
+    left: 3px;
+    color: var(--warning-text);
+}
+
+.vaccine-more {
+    margin-top: 0.7rem;
+}
+
+.vaccine-more summary {
+    font-size: 0.82rem;
+    color: var(--accent);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.vaccine-more p {
+    font-size: 0.88rem;
+    color: var(--text-gray);
+    margin-top: 0.5rem;
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--border-color);
+}
+
+/* Encadré « Avis aux voyageurs » */
+.note-msg {
+    display: none;
+    margin-top: 1.25rem;
+    padding: 1.2rem;
+    background: #eef4fb;
+    border: 1px solid #cfe0f3;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+}
+
+.note-msg h3 {
+    font-size: 1rem;
+    color: var(--accent);
+    margin-bottom: 0.7rem;
+}
+
+.travel-list {
+    list-style: none;
+    margin: 0.6rem 0 0 0.5rem;
+}
+
+.travel-list li {
+    margin-bottom: 0.25rem;
+}
+
+/* ========================= Étape 3 ========================= */
+.cta-section {
+    text-align: center;
+    background: var(--primary);
+    color: #fff;
+    margin-top: 2rem;
+}
+
+.cta-section h2 {
+    color: #fff;
+    justify-content: center;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.8rem 2rem;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 1rem;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn i {
+    color: inherit;
+    margin: 0;
+}
+
+.btn-light {
+    background: #fff;
+    color: var(--primary);
+}
+
+.btn-light:hover {
+    background: #e9ecef;
+}
+
+.btn-outline {
+    background: transparent;
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.btn-outline:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.btn-sm {
+    padding: 0.5rem 1.2rem;
+    font-size: 0.9rem;
+}
+
+.privacy-notice {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-gray);
+    margin: 2rem 0;
+}
+
+/* ============ Barre de synthèse (petits écrans) ============ */
+.summary-bar {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 960px) {
+    .summary-bar:not([hidden]) {
+        display: flex;
+    }
+}
+
+/* ========================= Divers ========================= */
+i {
+    font-size: 1.2rem;
+    margin-right: 4px;
+    vertical-align: middle;
+    color: var(--primary);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+    .section-card {
+        padding: 1.5rem;
+    }
+    .radio-group {
+        grid-template-columns: 1fr;
+    }
+    .cta-buttons .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ========================= Impression ========================= */
+@media print {
+    body {
+        background: #fff;
+        color: #000;
+        padding: 0;
+    }
+    .layout {
+        display: block;
+    }
+    #step-vaccins {
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
+    .section-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+        margin-bottom: 1rem;
+        break-inside: avoid;
+    }
+    .vaccine-card {
+        break-inside: avoid;
+    }
+    .cta-section,
+    .privacy-notice,
+    .summary-bar,
+    .toggle-situations,
+    .shortcut-hint,
+    .shortcut-key,
+    .btn {
+        display: none !important;
+    }
+    /* On n'imprime que ce qui a été coché */
+    .checkbox-container input[type="checkbox"]:not(:checked),
+    .checkbox-container input[type="checkbox"]:not(:checked) + span {
+        display: none;
+    }
+    .radio-card input[type="radio"]:not(:checked) + .radio-label {
+        display: none;
+    }
+    .radio-card input[type="radio"]:checked + .radio-label {
+        border-color: #999;
+    }
+    .vaccine-more summary {
+        display: none;
+    }
+    .hint-msg,
+    .warning-msg,
+    .note-msg {
+        border: 1px solid #ddd;
+    }
+}

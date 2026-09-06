@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recommandations Vaccinales - MSP Route de Vienne</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+
+    <header>
+        <h1>Recommandations Vaccinales</h1>
+        <p class="subtitle"> Notre MSP Route de Vienne peut maintenant prescrire et vacciner les patients de 11 ans et plus.<br>
+         Faites-le test en 3 étapes.</p>
+    </header>
+
+    <div class="container">
+
+        <div class="layout">
+
+            <!-- ================= ÉTAPE 1 : PROFIL ================= -->
+            <section class="section-card" id="step-profil">
+                <h2><span class="step-num">1</span> Votre profil</h2>
+
+                <fieldset class="form-group">
+                    <legend>Genre <span id="genre-status" class="status-icon" aria-hidden="true">✅</span></legend>
+                    <div class="radio-group">
+                        <label class="radio-card">
+                            <input type="radio" name="genre" value="homme">
+                            <span class="radio-label"><i class="ph ph-gender-male"></i> Homme / garçon</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="genre" value="femme">
+                            <span class="radio-label"><i class="ph ph-gender-female"></i> Femme / fille</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="form-group">
+                    <label for="age">Âge <span id="age-status" class="status-icon" aria-hidden="true">✅</span></label>
+                    <input type="number" id="age" class="input-field" min="0" max="120" placeholder="Entrez votre âge">
+                </div>
+
+                <div id="age-warning" class="warning-msg">
+                    <i class="ph ph-warning-circle"></i>
+                    <span>L'âge des patients concernés par la vaccination en officine doit être de 11 ans et plus.</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-container toggle-situations">
+                        <input type="checkbox" id="has-situation">
+                        <span class="checkbox-text">Je suis dans une situation particulière (enceinte, immunodéprimé, voyage&nbsp;…)</span>
+                    </label>
+
+                    <div class="situations-list" id="situations-list">
+
+                        <fieldset class="situation-group">
+                            <legend><i class="ph ph-heartbeat"></i> Ma santé</legend>
+                            <label class="checkbox-container">
+                                <input type="checkbox" name="situation" value="immuno">
+                                <span><span class="shortcut-key">A</span>Je suis immunodéprimé <em>(baisse de mes défenses immunitaires)</em></span>
+                            </label>
+                            <label class="checkbox-container">
+                                <input type="checkbox" name="situation" value="maladie_chro">
+                                <span><span class="shortcut-key">B</span>J'ai du diabète, ou un problème cardiaque, respiratoire, rénal ou du foie</span>
+                            </label>
+                            <label class="checkbox-container">
+                                <input type="checkbox" name="situation" value="muco">
+                                <span><span class="shortcut-key">C</span>Je suis atteint de mucoviscidose</span>
+                            </label>
+                        </fieldset>
+
+                        <fieldset class="situation-group">
+                            <legend><i class="ph ph-user-circle"></i> Ma vie</legend>
+                            <label class="checkbox-container" id="lbl-enceinte">
+                                <input type="checkbox" name="situation" value="enceinte">
+                                <span><span class="shortcut-key">D</span>Je suis enceinte</span>
+                            </label>
+                            <label class="checkbox-container">
+                                <input type="checkbox" name="situation" value="pro_sante">
+                                <span><span class="shortcut-key">E</span>Je suis un professionnel de santé</span>
+                            </label>
+                            <label class="checkbox-container" id="lbl-hsh">
+                                <input type="checkbox" name="situation" value="hsh">
+                                <span><span class="shortcut-key">F</span>Je suis un homme ayant des relations avec des hommes</span>
+                            </label>
+                        </fieldset>
+
+                        <fieldset class="situation-group">
+                            <legend><i class="ph ph-airplane-tilt"></i> Voyage et épidémie</legend>
+                            <label class="checkbox-container">
+                                <input type="checkbox" name="situation" value="voyage">
+                                <span><span class="shortcut-key">G</span>Je pars en voyage</span>
+                            </label>
+                            <div class="sub-question" id="sub-voyage">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" name="situation" value="voyage_afr_mecque">
+                                    <span>Je pars en Afrique ou je fais le pèlerinage à La Mecque</span>
+                                </label>
+                            </div>
+                            <label class="checkbox-container">
+                                <input type="checkbox" name="situation" value="epidemie">
+                                <span><span class="shortcut-key">H</span>Je suis en zone d'épidémie en cours <em>(📍 Rennes métropole)</em></span>
+                            </label>
+                        </fieldset>
+
+                        <p class="shortcut-hint">Astuce : les touches <kbd>A</kbd> à <kbd>H</kbd> cochent les cases directement.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= ÉTAPE 2 : VACCINS ================= -->
+            <section class="section-card" id="step-vaccins">
+                <h2><span class="step-num">2</span> Vos vaccins recommandés</h2>
+
+                <div id="results" aria-live="polite">
+                    <p id="result-count" class="result-count"></p>
+                    <div id="global-hint" class="hint-msg">
+                        <i class="ph ph-info"></i>
+                        <span>Renseignez votre genre et votre âge pour afficher vos recommandations.</span>
+                    </div>
+                    <div id="vaccines" class="vaccine-list"></div>
+                    <div id="travel-note" class="note-msg"></div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ================= ÉTAPE 3 : CONTACT ================= -->
+        <section class="section-card cta-section" id="step-contact">
+            <h2><span class="step-num step-num-light">3</span> Parlez-en avec nous</h2>
+            <p>Nous pouvons faire le point au comptoir et, si vous le souhaitez, vous prescrire le ou les vaccin(s) qui vous sont recommandés et vous vacciner maintenant sans RDV.</p>
+            <div class="cta-buttons">
+                <button class="btn btn-light" onclick="printAndTrack()"><i class="ph ph-printer"></i> Imprimer / PDF</button>
+                <button class="btn btn-outline" onclick="closeAndTrack()">Fermer</button>
+            </div>
+        </section>
+
+        <p class="privacy-notice">
+            Vos données restent sur votre appareil. Aucune information n'est envoyée ni stockée.
+        </p>
+    </div>
+
+    <!-- Barre de synthèse (mobile / tablette) -->
+    <div class="summary-bar" id="summary-bar" hidden>
+        <span id="summary-bar-text"></span>
+        <button class="btn btn-light btn-sm" onclick="scrollToResults()">Voir</button>
+    </div>
+
+    <script>
+        /* =========================================================
+           Données vaccins : un libellé court affiché,
+           le texte long replié dans « En savoir plus »
+           ========================================================= */
+        const VACCINES = {
+            'DTPc': {
+                short: "Diphtérie, tétanos, poliomyélite et coqueluche, en une seule injection.",
+                long: "Ce vaccin protège contre quatre maladies : la diphtérie, le tétanos, la poliomyélite et la coqueluche. Les rappels sont prévus par le calendrier vaccinal tout au long de la vie."
+            },
+            'HPV (Papillomavirus Humain)': {
+                short: "Prévient les cancers liés aux papillomavirus.",
+                long: "Ce vaccin prévient les infections à haut risque responsables de cancers du col de l'utérus, de la gorge et des organes génitaux. Ces virus, très contagieux, se transmettent par contact sexuel et peuvent entraîner des lésions précancéreuses. La vaccination est recommandée dès 11 ans, avant l'exposition au virus, pour une protection optimale."
+            },
+            'Méningocoque': {
+                short: "Protège des méningites et septicémies graves.",
+                long: "Ce vaccin protège contre des infections invasives graves, comme la méningite et la septicémie, pouvant être mortelles en quelques heures. Ces bactéries se transmettent par voie respiratoire et touchent surtout les adolescents et les jeunes adultes. La vaccination est recommandée à 11-14 ans et avant un voyage en zone à risque."
+            },
+            'ROR': {
+                short: "Rougeole, oreillons et rubéole.",
+                long: "Ce vaccin protège contre la rougeole, les oreillons et la rubéole, trois maladies virales très contagieuses pouvant entraîner de graves complications. La rougeole peut provoquer des pneumonies et des encéphalites, tandis que la rubéole est dangereuse pour les femmes enceintes."
+            },
+            'Hépatite B': {
+                short: "Protège contre l'hépatite B.",
+                long: "L'hépatite B est une infection virale du foie qui peut devenir chronique et évoluer vers une cirrhose ou un cancer du foie. Le virus se transmet par le sang et lors des rapports sexuels."
+            },
+            'Hépatite A': {
+                short: "Protège contre l'hépatite A.",
+                long: "L'hépatite A est une infection virale du foie qui se transmet par l'eau, les aliments contaminés et les contacts rapprochés."
+            },
+            'Varicelle': {
+                short: "Recommandé si vous n'avez jamais eu la varicelle.",
+                long: "La varicelle est bénigne chez l'enfant mais peut être sévère à l'âge adulte. La vaccination concerne les personnes sans antécédent de varicelle."
+            },
+            'Grippe': {
+                short: "Une dose chaque automne.",
+                long: "La grippe saisonnière peut entraîner des complications respiratoires et cardiaques sérieuses chez les personnes fragiles. Le vaccin est adapté chaque année aux virus qui circulent."
+            },
+            'Covid-19': {
+                short: "Rappel recommandé lors des campagnes.",
+                long: "Le rappel Covid-19 vise à maintenir la protection contre les formes graves de la maladie, en priorité chez les personnes à risque."
+            },
+            'Pneumocoque': {
+                short: "Protège des pneumonies et infections graves à pneumocoque.",
+                long: "Le pneumocoque est responsable de pneumonies, de méningites et de septicémies. La vaccination est recommandée aux personnes fragiles et aux plus de 65 ans."
+            },
+            'Zona': {
+                short: "Prévient le zona et ses douleurs persistantes.",
+                long: "Le zona est une réactivation du virus de la varicelle. Il provoque une éruption douloureuse pouvant laisser des douleurs durables, d'autant plus fréquentes avec l'âge."
+            },
+            'Coqueluche': {
+                short: "Protège les nourrissons de l'entourage.",
+                long: "La coqueluche est très contagieuse et grave chez le nourrisson de moins de 6 mois. Vacciner l'entourage réduit le risque de transmission."
+            },
+            'Bronchiolite / VRS': {
+                short: "Protège contre le virus respiratoire syncytial.",
+                long: "Le VRS est responsable de la bronchiolite du nourrisson et d'infections respiratoires sévères chez les personnes âgées ou fragiles."
+            },
+            'Méningocoque ACWY': {
+                short: "Couvre les méningocoques A, C, W et Y.",
+                long: "Recommandé avant certains voyages et en situation épidémique. Il est exigé pour le pèlerinage à La Mecque."
+            },
+            'Méningocoque B': {
+                short: "Couvre le méningocoque de type B.",
+                long: "Le méningocoque B est la cause la plus fréquente d'infections invasives à méningocoque en France."
+            }
+        };
+
+        const TRAVEL_NOTE = 'Nous, pharmaciens, ne pouvons pas encore prescrire les vaccins du voyageur 😞<br><br>'
+            + '<strong>💡 Voici cependant quelques conseils pour votre voyage :</strong><br><br>'
+            + '1️⃣ Anticiper ses vaccinations 2 à 3 mois avant le départ, avec votre médecin traitant ou dans un centre de vaccinations spécialisé.<br>'
+            + '2️⃣ Se mettre à jour du calendrier vaccinal français 🇫🇷 — parlez-en avec nous ! 🙂<br>'
+            + '3️⃣ Se faire vacciner selon la destination et les conditions du voyage 🧭 :'
+            + '<ul class="travel-list">'
+            + '<li>⚠️ Niveau sanitaire faible ➡️ Hépatite A</li>'
+            + '<li>🌏 Europe de l\'Est ou Asie ➡️ Diphtérie</li>'
+            + '<li>🌍 Afrique ➡️ Poliomyélite</li>'
+            + '<li>🌍 Afrique ou Amérique du Sud ➡️ Fièvre jaune</li>'
+            + '<li>👟 Pèlerinage à La Mecque ➡️ Méningite à méningocoque</li>'
+            + '<li>🌳 Aventure, zone rurale ou hygiène précaire ➡️ Typhoïde, rage, encéphalite à tiques, MPox</li>'
+            + '</ul>';
+
+        /* ========================= DOM ========================= */
+        const genreRadios = document.getElementsByName('genre');
+        const ageInput = document.getElementById('age');
+        const hasSituationCheckbox = document.getElementById('has-situation');
+        const situationsList = document.getElementById('situations-list');
+        const situationCheckboxes = document.getElementsByName('situation');
+
+        const genreStatus = document.getElementById('genre-status');
+        const ageStatus = document.getElementById('age-status');
+        const ageWarning = document.getElementById('age-warning');
+
+        const globalHint = document.getElementById('global-hint');
+        const resultCount = document.getElementById('result-count');
+        const vaccinesContainer = document.getElementById('vaccines');
+        const travelNote = document.getElementById('travel-note');
+        const summaryBar = document.getElementById('summary-bar');
+        const summaryBarText = document.getElementById('summary-bar-text');
+
+        const lblHsh = document.getElementById('lbl-hsh');
+        const lblEnceinte = document.getElementById('lbl-enceinte');
+        const subVoyage = document.getElementById('sub-voyage');
+
+        /* ============ Construction des recommandations ============
+           Une seule Map : un vaccin recommandé à la fois par l'âge et
+           par une situation n'apparaît qu'une fois, avec ses deux motifs.
+           ========================================================= */
+        function buildRecommendations(genre, age, hasAge, situations) {
+            const map = new Map();
+
+            function add(name, source, reason) {
+                if (!map.has(name)) {
+                    map.set(name, { name: name, sources: new Set(), reasons: [] });
+                }
+                const entry = map.get(name);
+                entry.sources.add(source);
+                if (reason && entry.reasons.indexOf(reason) === -1) entry.reasons.push(reason);
+            }
+
+            // --- Vaccins liés à l'âge ---
+            if (genre && hasAge) {
+                if (age >= 11 && age <= 24) {
+                    ['DTPc', 'HPV (Papillomavirus Humain)', 'Méningocoque', 'ROR', 'Hépatite B', 'Varicelle']
+                        .forEach(v => add(v, 'age', "Recommandé entre 11 et 24 ans"));
+                } else if (age >= 25 && age <= 44) {
+                    ['DTPc', 'ROR', 'Varicelle']
+                        .forEach(v => add(v, 'age', "Recommandé entre 25 et 44 ans"));
+                } else if (age >= 45 && age <= 64) {
+                    ['DTPc', 'ROR']
+                        .forEach(v => add(v, 'age', "Recommandé entre 45 et 64 ans"));
+                } else if (age >= 65) {
+                    ['DTPc', 'Grippe', 'Covid-19', 'Pneumocoque', 'Zona']
+                        .forEach(v => add(v, 'age', "Recommandé à partir de 65 ans"));
+                }
+            }
+
+            // --- Vaccins liés à la situation ---
+            situations.forEach(function (sit) {
+                if (sit === 'enceinte') {
+                    ['Grippe', 'Coqueluche', 'Bronchiolite / VRS', 'Covid-19']
+                        .forEach(v => add(v, 'situation', "Recommandé pendant la grossesse"));
+                }
+                if (sit === 'immuno') {
+                    const why = "Recommandé en raison de l'immunodépression";
+                    ['Grippe', 'Covid-19', 'Pneumocoque', 'Méningocoque'].forEach(v => add(v, 'situation', why));
+                    if (hasAge && age >= 18) add('Zona', 'situation', why);
+                }
+                if (sit === 'maladie_chro') {
+                    const why = "Recommandé en raison de votre maladie chronique";
+                    ['Grippe', 'Covid-19', 'Pneumocoque', 'Coqueluche'].forEach(v => add(v, 'situation', why));
+                    if (hasAge && age >= 60) add('Bronchiolite / VRS', 'situation', why);
+                }
+                if (sit === 'muco') {
+                    ['Grippe', 'Pneumocoque']
+                        .forEach(v => add(v, 'situation', "Recommandé en cas de mucoviscidose"));
+                }
+                if (sit === 'voyage_afr_mecque') {
+                    ['Méningocoque ACWY', 'Méningocoque B']
+                        .forEach(v => add(v, 'situation', "Recommandé pour l'Afrique ou le pèlerinage à La Mecque"));
+                }
+                if (sit === 'pro_sante') {
+                    ['Hépatite B', 'ROR', 'Grippe', 'Covid-19']
+                        .forEach(v => add(v, 'situation', "Recommandé pour les professionnels de santé"));
+                }
+                if (sit === 'hsh') {
+                    add('Hépatite A', 'situation', (hasAge && age <= 14)
+                        ? "Recommandé (schéma pédiatrique)"
+                        : "Recommandé dans votre situation");
+                }
+                if (sit === 'epidemie') {
+                    add('Méningocoque ACWY', 'situation', "Recommandé en zone d'épidémie en cours");
+                    if (hasAge && age >= 15 && age <= 24) {
+                        add('Méningocoque B', 'situation', "Recommandé en zone d'épidémie (15-24 ans)");
+                    }
+                }
+            });
+
+            return map;
+        }
+
+        /* ========================= Rendu ========================= */
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"]/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+            });
+        }
+
+        function renderVaccineCard(entry) {
+            const info = VACCINES[entry.name] || { short: '', long: '' };
+
+            let badges = '';
+            if (entry.sources.has('age')) badges += '<span class="badge badge-age">Âge</span>';
+            if (entry.sources.has('situation')) badges += '<span class="badge badge-situation">Situation</span>';
+
+            const reasons = entry.reasons.map(function (r) {
+                return '<li>' + escapeHtml(r) + '</li>';
+            }).join('');
+
+            const details = info.long
+                ? '<details class="vaccine-more"><summary>En savoir plus</summary><p>' + info.long + '</p></details>'
+                : '';
+
+            return '<article class="vaccine-card' + (entry.sources.has('situation') ? ' special' : '') + '">'
+                + '<div class="vaccine-head">'
+                + '<h3 class="vaccine-name">' + escapeHtml(entry.name) + '</h3>'
+                + '<div class="badges">' + badges + '</div>'
+                + '</div>'
+                + '<p class="vaccine-short">' + info.short + '</p>'
+                + '<ul class="vaccine-why">' + reasons + '</ul>'
+                + details
+                + '</article>';
+        }
+
+        /* ===================== Mise à jour ===================== */
+        function getSelectedGenre() {
+            const selected = Array.from(genreRadios).find(function (r) { return r.checked; });
+            return selected ? selected.value : null;
+        }
+
+        function updateRecommendations() {
+            const genre = getSelectedGenre();
+            const ageStr = ageInput.value;
+            const age = parseInt(ageStr, 10);
+            const hasAge = !isNaN(age) && ageStr.trim() !== "";
+
+            genreStatus.classList.toggle('visible', !!genre);
+            ageStatus.classList.toggle('visible', hasAge);
+
+            // Situations propres à un genre
+            const hshCb = document.querySelector('input[value="hsh"]');
+            const enceinteCb = document.querySelector('input[value="enceinte"]');
+            if (genre === 'femme') {
+                lblHsh.hidden = true;
+                if (hshCb) hshCb.checked = false;
+                lblEnceinte.hidden = false;
+            } else if (genre === 'homme') {
+                lblEnceinte.hidden = true;
+                if (enceinteCb) enceinteCb.checked = false;
+                lblHsh.hidden = false;
+            } else {
+                lblHsh.hidden = false;
+                lblEnceinte.hidden = false;
+            }
+
+            // Sous-question « voyage »
+            const voyageCb = document.querySelector('input[value="voyage"]');
+            const afrCb = document.querySelector('input[value="voyage_afr_mecque"]');
+            const voyageChecked = !!(voyageCb && voyageCb.checked);
+            subVoyage.classList.toggle('active', voyageChecked);
+            if (!voyageChecked && afrCb) afrCb.checked = false;
+
+            ageWarning.style.display = (hasAge && age < 11) ? 'flex' : 'none';
+
+            const situations = Array.from(situationCheckboxes)
+                .filter(function (cb) { return cb.checked; })
+                .map(function (cb) { return cb.value; });
+
+            const recos = buildRecommendations(genre, age, hasAge, situations);
+
+            // Liste des vaccins
+            let html = "";
+            recos.forEach(function (entry) { html += renderVaccineCard(entry); });
+            vaccinesContainer.innerHTML = html;
+
+            // Conseils voyageur (information, pas une prescription)
+            if (situations.indexOf('voyage') !== -1) {
+                travelNote.innerHTML = '<h3><i class="ph ph-airplane-takeoff"></i> Avis aux voyageurs</h3>' + TRAVEL_NOTE;
+                travelNote.style.display = 'block';
+            } else {
+                travelNote.innerHTML = '';
+                travelNote.style.display = 'none';
+            }
+
+            // Compteur et message d'attente
+            const count = recos.size;
+            if (count > 0) {
+                globalHint.style.display = 'none';
+                resultCount.textContent = (count > 1)
+                    ? count + " vaccins vous sont recommandés"
+                    : "1 vaccin vous est recommandé";
+                resultCount.style.display = 'block';
+            } else {
+                resultCount.style.display = 'none';
+                globalHint.style.display = 'flex';
+                globalHint.querySelector('span').textContent = (genre && hasAge)
+                    ? "Aucun vaccin spécifiquement recommandé pour ce profil. Parlons-en au comptoir."
+                    : "Renseignez votre genre et votre âge pour afficher vos recommandations.";
+            }
+
+            // Barre de synthèse (mobile)
+            summaryBar.hidden = (count === 0);
+            if (count > 0) {
+                summaryBarText.textContent = (count > 1)
+                    ? count + " vaccins recommandés"
+                    : "1 vaccin recommandé";
+            }
+        }
+
+        function scrollToResults() {
+            document.getElementById('step-vaccins').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        /* ======================= Événements ======================= */
+        hasSituationCheckbox.addEventListener('change', function (e) {
+            situationsList.classList.toggle('active', e.target.checked);
+            if (!e.target.checked) {
+                Array.from(situationCheckboxes).forEach(function (cb) { cb.checked = false; });
+            }
+            updateRecommendations();
+        });
+
+        document.querySelectorAll('input').forEach(function (input) {
+            input.addEventListener('input', updateRecommendations);
+            input.addEventListener('change', updateRecommendations);
+        });
+
+        // Raccourcis clavier A → H
+        const SHORTCUTS = {
+            a: 'immuno', b: 'maladie_chro', c: 'muco',
+            d: 'enceinte', e: 'pro_sante', f: 'hsh',
+            g: 'voyage', h: 'epidemie'
+        };
+
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+            const tag = document.activeElement ? document.activeElement.tagName : '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+            const value = SHORTCUTS[e.key.toLowerCase()];
+            if (!value) return;
+
+            const cb = document.querySelector('input[value="' + value + '"]');
+            if (!cb) return;
+            const container = cb.closest('.checkbox-container');
+            if (container && container.hidden) return;
+
+            if (!hasSituationCheckbox.checked) {
+                hasSituationCheckbox.checked = true;
+                situationsList.classList.add('active');
+            }
+            cb.checked = !cb.checked;
+            e.preventDefault();
+            updateRecommendations();
+        });
+
+        /* ================ Statistiques anonymes ================ */
+        function trackAnonymousStats(actionType) {
+            const genre = getSelectedGenre();
+            const age = parseInt(ageInput.value, 10);
+            const situations = Array.from(situationCheckboxes).filter(function (cb) { return cb.checked; });
+
+            // On regroupe l'âge par tranche pour garantir l'anonymat
+            let ageBracket = "Non renseigné";
+            if (!isNaN(age)) {
+                if (age < 11) ageBracket = "< 11";
+                else if (age <= 24) ageBracket = "11-24";
+                else if (age <= 44) ageBracket = "25-44";
+                else if (age <= 64) ageBracket = "45-64";
+                else ageBracket = "65+";
+            }
+
+            const payload = {
+                timestamp: new Date().toISOString(),
+                action: actionType,
+                genre: genre || "Non renseigné",
+                age_bracket: ageBracket,
+                situations_count: situations.length
+            };
+
+            console.log("📊 Données statistiques anonymes :", payload);
+
+            // === POUR ACTIVER L'ENVOI RÉEL ===
+            // const WEBHOOK_URL = "VOTRE_URL_GOOGLE_APPS_SCRIPT_ICI";
+            // fetch(WEBHOOK_URL, {
+            //     method: "POST",
+            //     mode: "no-cors",
+            //     headers: { "Content-Type": "application/json" },
+            //     body: JSON.stringify(payload)
+            // }).catch(function (err) { console.error(err); });
+        }
+
+        function printAndTrack() {
+            trackAnonymousStats('imprimer_pdf');
+            // On déplie les détails pour que la version papier soit complète
+            document.querySelectorAll('.vaccine-more').forEach(function (d) { d.open = true; });
+            window.print();
+        }
+
+        function closeAndTrack() {
+            trackAnonymousStats('fermer');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        updateRecommendations();
+    </script>
+</body>
+</html>
