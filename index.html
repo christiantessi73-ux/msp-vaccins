@@ -151,6 +151,9 @@
         </p>
     </div>
 
+    <!-- Document imprimé : construit à part, invisible à l'écran -->
+    <div id="print-summary" class="print-summary" aria-hidden="true"></div>
+
     <!-- Barre de synthèse (mobile / tablette) -->
     <div class="summary-bar" id="summary-bar" hidden>
         <span id="summary-bar-text"></span>
@@ -254,6 +257,7 @@
         const resultCount = document.getElementById('result-count');
         const vaccinesContainer = document.getElementById('vaccines');
         const travelNote = document.getElementById('travel-note');
+        const printSummary = document.getElementById('print-summary');
         const doneBlock = document.getElementById('done-block');
         const doneTitleText = document.getElementById('done-title-text');
         const vaccinesDoneContainer = document.getElementById('vaccines-done');
@@ -507,6 +511,8 @@
                         : "1 vaccin à faire";
                 }
             }
+
+            buildPrintSummary(genre, age, hasAge, situations, recos);
         }
 
         /* Clic sur « Déjà fait » / « Je ne sais plus ».
@@ -539,6 +545,109 @@
         });
 
         // Raccourcis clavier A → H
+        /* ============ Document imprimé ============
+           L'écran est un questionnaire, le papier est un compte rendu :
+           on le compose séparément plutôt que de masquer des morceaux. */
+        const SITUATION_LABELS = {
+            immuno: "Immunodépression",
+            maladie_chro: "Maladie chronique (diabète, cœur, poumons, reins ou foie)",
+            muco: "Mucoviscidose",
+            enceinte: "Grossesse",
+            pro_sante: "Professionnel de santé",
+            hsh: "Homme ayant des relations avec des hommes",
+            voyage: "Voyage prévu",
+            voyage_afr_mecque: "Voyage en Afrique ou pèlerinage à La Mecque",
+            epidemie: "Zone d'épidémie en cours (Rennes métropole)"
+        };
+
+        const TRAVEL_PRINT = [
+            "Niveau sanitaire faible : hépatite A",
+            "Europe de l'Est ou Asie : diphtérie",
+            "Afrique : poliomyélite",
+            "Afrique ou Amérique du Sud : fièvre jaune",
+            "Pèlerinage à La Mecque : méningite à méningocoque",
+            "Aventure, zone rurale ou hygiène précaire : typhoïde, rage, encéphalite à tiques, MPox"
+        ];
+
+        function printList(title, entries, extraClass) {
+            if (entries.length === 0) return '';
+            const items = entries.map(function (entry) {
+                const info = VACCINES[entry.name] || { short: '' };
+                const why = entry.reasons.length
+                    ? '<span class="ps-why">' + escapeHtml(entry.reasons.join(' · ')) + '</span>'
+                    : '';
+                return '<li><span class="ps-name">' + escapeHtml(entry.name) + '</span>'
+                    + '<span class="ps-short">' + info.short + '</span>' + why + '</li>';
+            }).join('');
+            return '<section class="ps-block ' + extraClass + '">'
+                + '<h2>' + title + ' <span class="ps-count">(' + entries.length + ')</span></h2>'
+                + '<ul>' + items + '</ul></section>';
+        }
+
+        function buildPrintSummary(genre, age, hasAge, situations, recos) {
+            const todo = [];
+            const unsure = [];
+            const done = [];
+            recos.forEach(function (entry) {
+                const s = vaccineStatus[entry.name] || 'todo';
+                if (s === 'done') done.push(entry);
+                else if (s === 'unsure') unsure.push(entry);
+                else todo.push(entry);
+            });
+
+            const profil = [];
+            if (genre) profil.push(genre === 'homme' ? "Homme" : "Femme");
+            if (hasAge) profil.push(age + " ans");
+
+            const sits = situations
+                .map(function (s) { return SITUATION_LABELS[s]; })
+                .filter(Boolean);
+
+            let html = '<header class="ps-head">'
+                + '<p class="ps-org">MSP Route de Vienne</p>'
+                + '<h1>Bilan vaccinal</h1>'
+                + '<p class="ps-date">Établi le ' + new Date().toLocaleDateString('fr-FR') + '</p>'
+                + '</header>';
+
+            html += '<section class="ps-profil">'
+                + '<h2>Profil</h2>'
+                + '<p>' + (profil.length ? escapeHtml(profil.join(' · ')) : "Non renseigné") + '</p>'
+                + (sits.length
+                    ? '<p class="ps-sits"><span>Situations déclarées :</span> ' + escapeHtml(sits.join(' · ')) + '</p>'
+                    : '')
+                + '</section>';
+
+            if (recos.size === 0) {
+                html += '<section class="ps-block"><p class="ps-empty">'
+                    + "Aucun vaccin spécifiquement recommandé pour ce profil. "
+                    + "Faisons le point ensemble au comptoir.</p></section>";
+            } else {
+                html += printList("À faire", todo, 'ps-todo');
+                html += printList("À vérifier avec votre carnet", unsure, 'ps-unsure');
+                html += printList("Déjà fait, d'après vos déclarations", done, 'ps-done');
+            }
+
+            if (situations.indexOf('voyage') !== -1) {
+                html += '<section class="ps-block ps-travel"><h2>Voyage</h2>'
+                    + '<p>Les vaccins du voyageur ne peuvent pas être prescrits en officine. '
+                    + 'Anticipez 2 à 3 mois avant le départ, avec votre médecin traitant ou un centre '
+                    + 'de vaccinations internationales. Selon la destination :</p>'
+                    + '<ul class="ps-plain">'
+                    + TRAVEL_PRINT.map(function (t) { return '<li>' + escapeHtml(t) + '</li>'; }).join('')
+                    + '</ul></section>';
+            }
+
+            html += '<footer class="ps-foot">'
+                + "<p>Ce document n'est pas une ordonnance. Il récapitule les recommandations "
+                + "du calendrier vaccinal pour le profil déclaré, sans consultation du carnet "
+                + "de vaccination. Présentez-le au comptoir : nous pouvons vérifier, prescrire "
+                + "et vacciner sur place, sans rendez-vous.</p>"
+                + '<p class="ps-privacy">Aucune donnée saisie n\'a été enregistrée ni transmise.</p>'
+                + '</footer>';
+
+            printSummary.innerHTML = html;
+        }
+
         const SHORTCUTS = {
             a: 'immuno', b: 'maladie_chro', c: 'muco',
             d: 'enceinte', e: 'pro_sante', f: 'hsh',
@@ -605,8 +714,6 @@
 
         function printAndTrack() {
             trackAnonymousStats('imprimer_pdf');
-            // On déplie les détails pour que la version papier soit complète
-            document.querySelectorAll('.vaccine-more').forEach(function (d) { d.open = true; });
             window.print();
         }
 

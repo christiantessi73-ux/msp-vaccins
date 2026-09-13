@@ -733,63 +733,171 @@ i {
 }
 
 /* ========================= Impression ========================= */
+
+/* =========================================================
+   Document imprimé : masqué à l'écran, seul visible au print
+   ========================================================= */
+.print-summary {
+    display: none;
+}
+
 @media print {
+    @page {
+        size: A4;
+        margin: 14mm 15mm;
+    }
+
+    /* L'interface disparaît entièrement, le compte rendu prend sa place */
+    body > header,
+    body > .container,
+    body > .summary-bar {
+        display: none !important;
+    }
+
     body {
         background: #fff;
         color: #000;
         padding: 0;
+        font-size: 10.5pt;
+        line-height: 1.45;
     }
-    .layout {
+
+    .print-summary {
         display: block;
     }
-    #step-vaccins {
-        position: static;
-        max-height: none;
-        overflow: visible;
+
+    .ps-head {
+        border-bottom: 2px solid #1B7A8A;
+        padding-bottom: 8px;
+        margin-bottom: 16px;
     }
-    .section-card {
-        box-shadow: none;
-        border: 1px solid #ddd;
-        margin-bottom: 1rem;
-        break-inside: avoid;
+
+    .ps-org {
+        font-size: 9pt;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #1B7A8A;
     }
-    .vaccine-card {
-        break-inside: avoid;
+
+    .ps-head h1 {
+        font-size: 19pt;
+        color: #000;
+        margin: 2px 0 0;
     }
-    .cta-section,
-    .privacy-notice,
-    .summary-bar,
-    .toggle-situations,
-    .shortcut-hint,
-    .shortcut-key,
-    .status-choice,
-    .btn {
-        display: none !important;
+
+    .ps-date {
+        font-size: 9pt;
+        color: #555;
     }
-    /* Sur papier, le pharmacien doit voir les deux listes en entier */
-    .vaccine-card.is-done {
-        opacity: 1;
-    }
-    .vaccine-card.is-done .vaccine-why {
+
+    .print-summary h2 {
+        font-size: 9.5pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #1B7A8A;
+        margin: 0 0 6px;
+        padding-bottom: 3px;
+        border-bottom: 1px solid #ccc;
         display: block;
     }
-    /* On n'imprime que ce qui a été coché */
-    .checkbox-container input[type="checkbox"]:not(:checked),
-    .checkbox-container input[type="checkbox"]:not(:checked) + span {
-        display: none;
+
+    .ps-count {
+        color: #666;
+        font-weight: 400;
     }
-    .radio-card input[type="radio"]:not(:checked) + .radio-label {
-        display: none;
+
+    .ps-profil {
+        margin-bottom: 16px;
     }
-    .radio-card input[type="radio"]:checked + .radio-label {
-        border-color: #999;
+
+    .ps-sits {
+        font-size: 9.5pt;
+        color: #333;
     }
-    .vaccine-more summary {
-        display: none;
+
+    .ps-sits span {
+        font-weight: 700;
     }
-    .hint-msg,
-    .warning-msg,
-    .note-msg {
-        border: 1px solid #ddd;
+
+    .ps-block {
+        margin-bottom: 16px;
+        break-inside: avoid;
+    }
+
+    .ps-block ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .ps-block li {
+        padding: 5px 0 5px 14px;
+        border-bottom: 1px dotted #ddd;
+        border-left: 3px solid transparent;
+        padding-left: 10px;
+        break-inside: avoid;
+    }
+
+    .ps-block li:last-child {
+        border-bottom: none;
+    }
+
+    .ps-todo li { border-left-color: #1B7A8A; }
+    .ps-unsure li { border-left-color: #4F72B7; }
+    .ps-done li { border-left-color: #bbb; color: #555; }
+
+    .ps-name {
+        display: block;
+        font-weight: 700;
+        font-size: 11pt;
+    }
+
+    .ps-short {
+        display: block;
+        font-size: 9.5pt;
+        color: #444;
+    }
+
+    .ps-why {
+        display: block;
+        font-size: 8.5pt;
+        color: #A85D00;
+    }
+
+    .ps-done .ps-why { display: none; }
+
+    .ps-plain {
+        list-style: disc;
+        margin: 6px 0 0 18px;
+        padding: 0;
+        font-size: 9.5pt;
+    }
+
+    .ps-plain li {
+        border: none;
+        padding: 1px 0;
+    }
+
+    .ps-travel p {
+        font-size: 9.5pt;
+    }
+
+    .ps-empty {
+        font-size: 10.5pt;
+    }
+
+    .ps-foot {
+        margin-top: 18px;
+        padding-top: 8px;
+        border-top: 1px solid #ccc;
+        font-size: 8.5pt;
+        color: #555;
+    }
+
+    .ps-privacy {
+        margin-top: 4px;
+        font-style: italic;
     }
 }
