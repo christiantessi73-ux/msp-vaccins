@@ -452,6 +452,91 @@ kbd {
     color: #8a5a00;
 }
 
+.badge-unsure {
+    background: rgba(79, 114, 183, 0.14);
+    color: var(--accent);
+}
+
+/* ============ Déclaration « déjà fait » par vaccin ============ */
+.status-choice {
+    display: flex;
+    gap: 8px;
+    margin-top: 0.9rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.chip {
+    padding: 0.35rem 0.9rem;
+    border: 1.5px solid var(--border-color);
+    border-radius: 50px;
+    background: #fff;
+    color: var(--text-gray);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.chip:hover {
+    border-color: var(--primary-light);
+    color: var(--primary);
+}
+
+.chip-on {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.chip-on:hover {
+    color: #fff;
+}
+
+.vaccine-card.is-unsure {
+    border-left-color: var(--accent);
+}
+
+/* Les vaccins déclarés faits restent lisibles, mais s'effacent */
+.done-block {
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px dashed var(--border-color);
+}
+
+.done-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--success);
+    margin-bottom: 0.9rem;
+}
+
+.done-title i {
+    color: var(--success);
+    font-size: 1rem;
+}
+
+.vaccine-card.is-done {
+    border-left-color: var(--success);
+    background: #fbfdfb;
+    opacity: 0.75;
+}
+
+.vaccine-card.is-done .vaccine-name {
+    text-decoration: line-through;
+    text-decoration-color: var(--border-color);
+}
+
+.vaccine-card.is-done .vaccine-why,
+.vaccine-card.is-done .vaccine-more {
+    display: none;
+}
+
 .vaccine-short {
     font-size: 0.93rem;
     color: var(--text-gray);
@@ -677,8 +762,16 @@ i {
     .toggle-situations,
     .shortcut-hint,
     .shortcut-key,
+    .status-choice,
     .btn {
         display: none !important;
+    }
+    /* Sur papier, le pharmacien doit voir les deux listes en entier */
+    .vaccine-card.is-done {
+        opacity: 1;
+    }
+    .vaccine-card.is-done .vaccine-why {
+        display: block;
     }
     /* On n'imprime que ce qui a été coché */
     .checkbox-container input[type="checkbox"]:not(:checked),

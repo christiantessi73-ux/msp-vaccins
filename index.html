@@ -121,6 +121,15 @@
                         <span>Renseignez votre genre et votre âge pour afficher vos recommandations.</span>
                     </div>
                     <div id="vaccines" class="vaccine-list"></div>
+
+                    <div id="done-block" class="done-block" hidden>
+                        <h3 class="done-title">
+                            <i class="ph ph-check-circle"></i>
+                            <span id="done-title-text">Déjà fait</span>
+                        </h3>
+                        <div id="vaccines-done" class="vaccine-list"></div>
+                    </div>
+
                     <div id="travel-note" class="note-msg"></div>
                 </div>
             </section>
@@ -245,6 +254,14 @@
         const resultCount = document.getElementById('result-count');
         const vaccinesContainer = document.getElementById('vaccines');
         const travelNote = document.getElementById('travel-note');
+        const doneBlock = document.getElementById('done-block');
+        const doneTitleText = document.getElementById('done-title-text');
+        const vaccinesDoneContainer = document.getElementById('vaccines-done');
+
+        /* Ce que le patient déclare pour chaque vaccin : 'todo' (défaut),
+           'done' (déjà fait) ou 'unsure' (ne sait plus). Conservé d'un rendu
+           à l'autre, et volontairement jamais enregistré hors de la page. */
+        const vaccineStatus = {};
         const summaryBar = document.getElementById('summary-bar');
         const summaryBarText = document.getElementById('summary-bar-text');
 
@@ -338,10 +355,13 @@
 
         function renderVaccineCard(entry) {
             const info = VACCINES[entry.name] || { short: '', long: '' };
+            const status = vaccineStatus[entry.name] || 'todo';
+            const safeName = escapeHtml(entry.name);
 
             let badges = '';
             if (entry.sources.has('age')) badges += '<span class="badge badge-age">Âge</span>';
             if (entry.sources.has('situation')) badges += '<span class="badge badge-situation">Situation</span>';
+            if (status === 'unsure') badges += '<span class="badge badge-unsure">À vérifier</span>';
 
             const reasons = entry.reasons.map(function (r) {
                 return '<li>' + escapeHtml(r) + '</li>';
@@ -351,14 +371,30 @@
                 ? '<details class="vaccine-more"><summary>En savoir plus</summary><p>' + info.long + '</p></details>'
                 : '';
 
-            return '<article class="vaccine-card' + (entry.sources.has('situation') ? ' special' : '') + '">'
+            // Deux boutons à bascule : recliquer sur un choix actif le retire
+            const choice = '<div class="status-choice" role="group" aria-label="Avez-vous déjà fait ce vaccin ?">'
+                + '<button type="button" class="chip' + (status === 'done' ? ' chip-on' : '') + '"'
+                + ' data-vaccine="' + safeName + '" data-status="done"'
+                + ' aria-pressed="' + (status === 'done') + '">Déjà fait</button>'
+                + '<button type="button" class="chip' + (status === 'unsure' ? ' chip-on' : '') + '"'
+                + ' data-vaccine="' + safeName + '" data-status="unsure"'
+                + ' aria-pressed="' + (status === 'unsure') + '">Je ne sais plus</button>'
+                + '</div>';
+
+            const cls = 'vaccine-card'
+                + (entry.sources.has('situation') ? ' special' : '')
+                + (status === 'done' ? ' is-done' : '')
+                + (status === 'unsure' ? ' is-unsure' : '');
+
+            return '<article class="' + cls + '">'
                 + '<div class="vaccine-head">'
-                + '<h3 class="vaccine-name">' + escapeHtml(entry.name) + '</h3>'
+                + '<h3 class="vaccine-name">' + safeName + '</h3>'
                 + '<div class="badges">' + badges + '</div>'
                 + '</div>'
                 + '<p class="vaccine-short">' + info.short + '</p>'
                 + '<ul class="vaccine-why">' + reasons + '</ul>'
                 + details
+                + choice
                 + '</article>';
         }
 
@@ -408,10 +444,26 @@
 
             const recos = buildRecommendations(genre, age, hasAge, situations);
 
-            // Liste des vaccins
-            let html = "";
-            recos.forEach(function (entry) { html += renderVaccineCard(entry); });
-            vaccinesContainer.innerHTML = html;
+            // Deux listes : ce qu'il reste à faire, et ce que le patient dit avoir fait
+            let todoHtml = "";
+            let doneHtml = "";
+            let doneCount = 0;
+
+            recos.forEach(function (entry) {
+                if (vaccineStatus[entry.name] === 'done') {
+                    doneHtml += renderVaccineCard(entry);
+                    doneCount++;
+                } else {
+                    todoHtml += renderVaccineCard(entry);
+                }
+            });
+
+            vaccinesContainer.innerHTML = todoHtml;
+            vaccinesDoneContainer.innerHTML = doneHtml;
+            doneBlock.hidden = (doneCount === 0);
+            doneTitleText.textContent = (doneCount > 1)
+                ? doneCount + " vaccins déjà faits"
+                : "1 vaccin déjà fait";
 
             // Conseils voyageur (information, pas une prescription)
             if (situations.indexOf('voyage') !== -1) {
@@ -424,11 +476,17 @@
 
             // Compteur et message d'attente
             const count = recos.size;
+            const todoCount = count - doneCount;
             if (count > 0) {
                 globalHint.style.display = 'none';
-                resultCount.textContent = (count > 1)
-                    ? count + " vaccins vous sont recommandés"
-                    : "1 vaccin vous est recommandé";
+                if (todoCount === 0) {
+                    resultCount.textContent = "Rien à faire d'après vos réponses — nous vérifierons avec votre carnet.";
+                } else {
+                    resultCount.textContent = (todoCount > 1)
+                        ? todoCount + " vaccins vous restent à faire"
+                        : "1 vaccin vous reste à faire";
+                    if (doneCount > 0) resultCount.textContent += " sur " + count + " recommandés";
+                }
                 resultCount.style.display = 'block';
             } else {
                 resultCount.style.display = 'none';
@@ -441,11 +499,26 @@
             // Barre de synthèse (mobile)
             summaryBar.hidden = (count === 0);
             if (count > 0) {
-                summaryBarText.textContent = (count > 1)
-                    ? count + " vaccins recommandés"
-                    : "1 vaccin recommandé";
+                if (todoCount === 0) {
+                    summaryBarText.textContent = "Rien à faire";
+                } else {
+                    summaryBarText.textContent = (todoCount > 1)
+                        ? todoCount + " vaccins à faire"
+                        : "1 vaccin à faire";
+                }
             }
         }
+
+        /* Clic sur « Déjà fait » / « Je ne sais plus ».
+           Délégation : les cartes sont reconstruites à chaque mise à jour. */
+        document.getElementById('results').addEventListener('click', function (e) {
+            const chip = e.target.closest('.chip');
+            if (!chip) return;
+            const name = chip.dataset.vaccine;
+            const wanted = chip.dataset.status;
+            vaccineStatus[name] = (vaccineStatus[name] === wanted) ? 'todo' : wanted;
+            updateRecommendations();
+        });
 
         function scrollToResults() {
             document.getElementById('step-vaccins').scrollIntoView({ behavior: 'smooth', block: 'start' });
