@@ -206,5 +206,26 @@ function installerTableauDeBord() {
   f.setColumnWidth(1, 280);
   for (var w = 2; w <= 7; w++) f.setColumnWidth(w, 130);
 
+  protegerCompteurs();
   return f;
+}
+
+/**
+ * Garde-fou sur la feuille « Indicateurs ».
+ *
+ * Le classeur est partagé au-delà de la MSP : une saisie manuelle dans les
+ * compteurs les fausserait sans qu'aucune sauvegarde permette de les
+ * reconstituer. En mode avertissement, le script continue d'écrire librement
+ * et un humain reçoit une demande de confirmation.
+ */
+function protegerCompteurs() {
+  var feuille = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FEUILLE);
+  if (!feuille) return;
+
+  feuille.getProtections(SpreadsheetApp.ProtectionType.SHEET)
+         .forEach(function (p) { p.remove(); });
+
+  feuille.protect()
+         .setDescription('Compteurs alimentés par le questionnaire — ne pas modifier à la main')
+         .setWarningOnly(true);
 }

@@ -23,18 +23,34 @@ Le classeur contient deux feuilles :
 - **`Indicateurs`** — les compteurs bruts, alimentés par le site. On n'y touche
   pas à la main.
 
-### Donner l'accès aux médecins
+### Donner l'accès aux médecins de l'hôpital
 
-*Fichier → Partager*, ajouter leurs adresses Google nominativement, rôle
-**Lecteur**.
+Les deux feuilles vivent dans le **même classeur** : partager le fichier donne
+accès au tableau de bord *et* aux compteurs bruts, il n'y a rien à partager
+séparément.
 
-Deux réflexes à garder :
+**Rôle : Lecteur, jamais Éditeur.** Une saisie manuelle, même involontaire,
+fausserait des compteurs qu'aucune sauvegarde ne permet de reconstituer. La
+feuille `Indicateurs` est en plus protégée en mode avertissement : le script
+écrit librement, un humain reçoit une demande de confirmation.
 
-- **Lecteur, pas Éditeur.** Une modification manuelle, même involontaire,
-  fausserait des compteurs qu'aucune sauvegarde ne permet de reconstituer.
-- **Pas de « Tous les utilisateurs disposant du lien ».** Les chiffres sont
-  anonymes, mais c'est un document d'activité interne : il se partage à des
-  personnes, pas à un lien.
+Deux façons de procéder, selon les comptes des médecins :
+
+**S'ils ont une adresse Google** (Gmail ou Workspace de l'hôpital) —
+*Fichier → Partager*, ajouter les adresses nominativement, rôle **Lecteur**.
+C'est le plus propre : on sait qui a accès, et on retire un accès en un clic.
+
+**S'ils n'ont pas de compte Google** — beaucoup d'adresses hospitalières n'en
+sont pas. Deux options :
+
+- *Partager → Tous les utilisateurs disposant du lien → Lecteur*, puis envoyer
+  le lien. Acceptable **parce que ces chiffres sont anonymes** : il n'y a rien
+  à protéger au sens du RGPD. Ce serait exclu avec des données par patient.
+- *Fichier → Partager → Publier sur le web* : produit une page en lecture
+  seule, sans compte, qu'on peut limiter à la feuille `Tableau de bord`.
+
+Dans les deux cas, ne pas diffuser le lien au-delà des destinataires du
+rapport, et le renouveler si la liste des médecins change.
 
 Les médecins n'ont besoin d'aucun droit sur le script Apps Script : il
 s'exécute sous ton compte, indépendamment de qui lit le classeur.
