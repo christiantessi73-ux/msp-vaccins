@@ -513,6 +513,14 @@
             }
 
             buildPrintSummary(genre, age, hasAge, situations, recos);
+
+            // Photographie de l'état courant, envoyée en un seul bloc à la fin
+            statsEtat = {
+                complet: (genre && hasAge) ? 1 : 0,
+                tranche: trancheAge(age, hasAge),
+                nb: count,
+                sit: situations.length > 0 ? 1 : 0
+            };
         }
 
         /* Clic sur « Déjà fait » / « Je ne sais plus ».
@@ -677,48 +685,93 @@
         });
 
         /* ================ Statistiques anonymes ================ */
-        function trackAnonymousStats(actionType) {
-            const genre = getSelectedGenre();
-            const age = parseInt(ageInput.value, 10);
-            const situations = Array.from(situationCheckboxes).filter(function (cb) { return cb.checked; });
+        /* ============== Indicateurs anonymes ==============
+           Destinés au rapport d'activité de prévention (Assurance Maladie).
 
-            // On regroupe l'âge par tranche pour garantir l'anonymat
-            let ageBracket = "Non renseigné";
-            if (!isNaN(age)) {
-                if (age < 11) ageBracket = "< 11";
-                else if (age <= 24) ageBracket = "11-24";
-                else if (age <= 44) ageBracket = "25-44";
-                else if (age <= 64) ageBracket = "45-64";
-                else ageBracket = "65+";
+           Aucune donnée individuelle ne sort de la page : au plus deux envois
+           par visite, sans identifiant, sans cookie, sans horodatage — c'est le
+           serveur qui date au mois. Le détail des situations particulières
+           n'est JAMAIS transmis, seulement le fait qu'il y en ait au moins une :
+           « femme, 32 ans, mucoviscidose » désignerait une personne, pas « 1 ».
+
+           Le serveur (voir apps-script/Code.gs) n'écrit que des compteurs
+           mensuels, jamais une ligne par visite.
+
+           Tant que STATS_ENDPOINT est vide, rien n'est envoyé : les envois
+           sont seulement affichés dans la console. */
+        const STATS_ENDPOINT = "";
+
+        let statsDebutEnvoye = false;
+        let statsFinEnvoye = false;
+        let statsImprime = 0;
+        let statsEtat = { complet: 0, tranche: 'nr', nb: 0, sit: 0 };
+
+        function envoyerStats(payload) {
+            if (!STATS_ENDPOINT) {
+                console.log("📊 Indicateur (envoi désactivé) :", payload);
+                return;
             }
-
-            const payload = {
-                timestamp: new Date().toISOString(),
-                action: actionType,
-                genre: genre || "Non renseigné",
-                age_bracket: ageBracket,
-                situations_count: situations.length
-            };
-
-            console.log("📊 Données statistiques anonymes :", payload);
-
-            // === POUR ACTIVER L'ENVOI RÉEL ===
-            // const WEBHOOK_URL = "VOTRE_URL_GOOGLE_APPS_SCRIPT_ICI";
-            // fetch(WEBHOOK_URL, {
-            //     method: "POST",
-            //     mode: "no-cors",
-            //     headers: { "Content-Type": "application/json" },
-            //     body: JSON.stringify(payload)
-            // }).catch(function (err) { console.error(err); });
+            const corps = JSON.stringify(payload);
+            // sendBeacon survit à la fermeture de l'onglet, contrairement à fetch
+            try {
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon(STATS_ENDPOINT,
+                        new Blob([corps], { type: 'text/plain;charset=UTF-8' }));
+                    return;
+                }
+            } catch (err) { /* on retombe sur fetch */ }
+            fetch(STATS_ENDPOINT, { method: 'POST', mode: 'no-cors', keepalive: true, body: corps })
+                .catch(function () { /* un indicateur perdu n'est pas une erreur */ });
         }
 
+        function statsDebut() {
+            if (statsDebutEnvoye) return;
+            statsDebutEnvoye = true;
+            envoyerStats({ e: 'debut' });
+        }
+
+        function statsFin() {
+            if (statsFinEnvoye) return;
+            statsFinEnvoye = true;
+            envoyerStats({
+                e: 'fin',
+                complet: statsEtat.complet,
+                tranche: statsEtat.tranche,
+                nb: statsEtat.nb,
+                sit: statsEtat.sit,
+                print: statsImprime
+            });
+        }
+
+        function trancheAge(age, hasAge) {
+            if (!hasAge) return 'nr';
+            if (age < 11) return 'moins11';
+            if (age <= 24) return '11-24';
+            if (age <= 44) return '25-44';
+            if (age <= 64) return '45-64';
+            return '65+';
+        }
+
+        // Début : à la première interaction réelle, pas au chargement
+        document.addEventListener('input', statsDebut, { once: true });
+        document.addEventListener('change', statsDebut, { once: true });
+
+        // Fin : quand l'onglet passe en arrière-plan ou se ferme
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'hidden') statsFin();
+        });
+        window.addEventListener('pagehide', statsFin);
+
         function printAndTrack() {
-            trackAnonymousStats('imprimer_pdf');
+            statsImprime = 1;
+            statsDebut();
+            statsFin();
             window.print();
         }
 
         function closeAndTrack() {
-            trackAnonymousStats('fermer');
+            statsDebut();
+            statsFin();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
