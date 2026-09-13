@@ -12,6 +12,33 @@ ni consentement, ni hébergeur certifié HDS, ni analyse d'impact. C'est ce qui
 permet d'utiliser un simple Google Sheet, ce qui serait exclu avec du détail
 par patient.
 
+## Qui consulte quoi
+
+Le classeur contient deux feuilles :
+
+- **`Tableau de bord`** — ce que les médecins ouvrent. Uniquement des formules :
+  totaux depuis le début, taux de complétion, moyenne de vaccins, part des
+  45 ans et plus, puis le détail mois par mois. Rien à saisir, tout se
+  recalcule seul.
+- **`Indicateurs`** — les compteurs bruts, alimentés par le site. On n'y touche
+  pas à la main.
+
+### Donner l'accès aux médecins
+
+*Fichier → Partager*, ajouter leurs adresses Google nominativement, rôle
+**Lecteur**.
+
+Deux réflexes à garder :
+
+- **Lecteur, pas Éditeur.** Une modification manuelle, même involontaire,
+  fausserait des compteurs qu'aucune sauvegarde ne permet de reconstituer.
+- **Pas de « Tous les utilisateurs disposant du lien ».** Les chiffres sont
+  anonymes, mais c'est un document d'activité interne : il se partage à des
+  personnes, pas à un lien.
+
+Les médecins n'ont besoin d'aucun droit sur le script Apps Script : il
+s'exécute sous ton compte, indépendamment de qui lit le classeur.
+
 ## Les indicateurs produits
 
 Une ligne par mois, dans la feuille `Indicateurs` :
@@ -66,7 +93,11 @@ exactement ce qui rend les compteurs anonymes.
    soi-même, accès « Tout le monde ». Copier l'URL `/exec`.
 4. Dans `index.html`, renseigner `const STATS_ENDPOINT = "…/exec";`
 5. Vérifier en lançant `testerInstallation()` depuis l'éditeur Apps Script :
-   la ligne du mois doit apparaître.
+   elle crée la ligne du mois **et** la feuille `Tableau de bord`.
+6. Partager le classeur en lecture avec les médecins (voir plus haut).
+
+Si le tableau de bord doit être remis à neuf, relancer `installerTableauDeBord()`
+depuis l'éditeur : la feuille est recréée, les compteurs ne bougent pas.
 
 Tant que `STATS_ENDPOINT` est vide, **rien n'est envoyé** — les événements
 s'affichent seulement dans la console du navigateur.

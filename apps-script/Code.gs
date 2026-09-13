@@ -127,5 +127,84 @@ function testerInstallation() {
   doPost({ postData: { contents: JSON.stringify(
     { e: 'fin', complet: 1, tranche: '45-64', nb: 4, sit: 1, print: 1 }
   ) } });
-  Logger.log('Ligne du mois créée — vérifiez la feuille « Indicateurs ».');
+  installerTableauDeBord();
+  Logger.log('Ligne du mois créée — vérifiez « Indicateurs » et « Tableau de bord ».');
+}
+
+/**
+ * Crée (ou recrée) la feuille « Tableau de bord ».
+ *
+ * C'est cette feuille que les médecins consultent : elle ne contient que des
+ * formules qui lisent « Indicateurs », donc elle reste à jour toute seule et
+ * aucune saisie n'y est nécessaire. Les compteurs bruts restent à côté.
+ *
+ * À lancer une fois depuis l'éditeur, puis à chaque fois qu'on veut la remettre
+ * à neuf.
+ */
+function installerTableauDeBord() {
+  var classeur = SpreadsheetApp.getActiveSpreadsheet();
+  var ancienne = classeur.getSheetByName('Tableau de bord');
+  if (ancienne) classeur.deleteSheet(ancienne);
+
+  var f = classeur.insertSheet('Tableau de bord', 0);
+  var src = FEUILLE;
+
+  f.getRange('A1').setValue('Recommandations vaccinales — activité de prévention')
+   .setFontSize(14).setFontWeight('bold');
+  f.getRange('A2').setValue('MSP Route de Vienne · chiffres agrégés, mis à jour automatiquement')
+   .setFontColor('#666666');
+
+  f.getRange('A4').setValue('DEPUIS LE DÉBUT').setFontWeight('bold').setFontColor('#1B7A8A');
+
+  var synthese = [
+    ['Questionnaires commencés',            "=SUM('" + src + "'!B2:B)",              '0'],
+    ['Questionnaires complétés',            "=SUM('" + src + "'!C2:C)",              '0'],
+    ['Taux de complétion',                  "=IFERROR(B6/B5,\"\")",                  '0.0%'],
+    ['Moyenne de vaccins par questionnaire', "=IFERROR(SUM('" + src + "'!I2:I)/B6,\"\")", '0.0'],
+    ['Part des 45 ans et plus',             "=IFERROR((SUM('" + src + "'!F2:F)+SUM('" + src + "'!G2:G))/B6,\"\")", '0.0%'],
+    ['Part déclarant une situation particulière', "=IFERROR(SUM('" + src + "'!H2:H)/B6,\"\")", '0.0%'],
+    ['Bilans imprimés ou enregistrés en PDF', "=SUM('" + src + "'!J2:J)",            '0']
+  ];
+
+  for (var i = 0; i < synthese.length; i++) {
+    var ligne = 5 + i;
+    f.getRange(ligne, 1).setValue(synthese[i][0]);
+    f.getRange(ligne, 2).setFormula(synthese[i][1]).setNumberFormat(synthese[i][2])
+     .setFontWeight('bold').setHorizontalAlignment('right');
+  }
+
+  f.getRange('A13').setValue('PAR MOIS').setFontWeight('bold').setFontColor('#1B7A8A');
+
+  var entetes = ['Mois', 'Complétés', 'Taux de complétion', 'Moy. vaccins',
+                 '45 ans et plus', 'Situation particulière', 'PDF'];
+  f.getRange(14, 1, 1, entetes.length).setValues([entetes])
+   .setFontWeight('bold').setBackground('#eef4fb');
+
+  var colonnes = [
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",'" + src + "'!A2:A))",
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",'" + src + "'!C2:C))",
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!C2:C/'" + src + "'!B2:B,\"\")))",
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!I2:I/'" + src + "'!C2:C,\"\")))",
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR(('" + src + "'!F2:F+'" + src + "'!G2:G)/'" + src + "'!C2:C,\"\")))",
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!H2:H/'" + src + "'!C2:C,\"\")))",
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",'" + src + "'!J2:J))"
+  ];
+  var formats = ['@', '0', '0.0%', '0.0', '0.0%', '0.0%', '0'];
+
+  for (var c = 0; c < colonnes.length; c++) {
+    f.getRange(15, c + 1).setFormula(colonnes[c]);
+    f.getRange(15, c + 1, 200, 1).setNumberFormat(formats[c]);
+  }
+
+  f.getRange('A' + (15 + 202))
+   .setValue("Rappel : ne pas publier une case comptant moins de 5 personnes — "
+           + "à cette échelle, un chiffre redevient identifiant. "
+           + "Ces compteurs mesurent l'action de sensibilisation, pas les actes vaccinaux, "
+           + "qui sont connus par la facturation.")
+   .setFontColor('#A85D00').setFontSize(9).setWrap(true);
+
+  f.setColumnWidth(1, 280);
+  for (var w = 2; w <= 7; w++) f.setColumnWidth(w, 130);
+
+  return f;
 }
