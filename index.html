@@ -99,34 +99,30 @@
         </p>
     </div>
 
-    <!-- Document imprimé : construit à part, invisible à l'écran -->
+    <!-- Barre du bilan affiché : masquée à l'impression -->
+    <div class="bilan-barre" id="bilan-barre" hidden>
+        <p class="bilan-message">
+            <i class="ph ph-check-circle" aria-hidden="true"></i>
+            C'est terminé, merci. Présentez cet écran à votre pharmacien
+            ou à votre médecin de la MSP Route de Vienne.
+        </p>
+        <div class="bilan-actions">
+            <button class="btn btn-light" onclick="fermerBilan()">
+                <i class="ph ph-arrow-left"></i> Revenir au questionnaire
+            </button>
+            <button class="btn btn-secondaire" onclick="enregistrerPdf()">
+                <i class="ph ph-printer"></i> Imprimer / PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Le bilan : le même document à l'écran et sur le papier -->
     <div id="print-summary" class="print-summary" aria-hidden="true"></div>
 
     <!-- Barre de synthèse (mobile / tablette) -->
     <div class="summary-bar" id="summary-bar" hidden>
         <span id="summary-bar-text"></span>
         <button class="btn btn-light btn-sm" onclick="scrollToResults()">Voir</button>
-    </div>
-
-    <!-- Confirmation de fin : au centre de l'écran, pour être vue -->
-    <div class="modale" id="modale-fin" role="dialog" aria-modal="true"
-         aria-labelledby="modale-titre" hidden>
-        <div class="modale-boite" tabindex="-1">
-            <i class="ph ph-check-circle modale-icone" aria-hidden="true"></i>
-            <h2 id="modale-titre">C'est terminé, merci</h2>
-            <p>Enregistrez votre bilan et présentez-le à votre pharmacien
-               ou à votre médecin de la MSP.</p>
-            <div class="modale-actions">
-                <button class="btn btn-light" onclick="enregistrerPdf()">
-                    <i class="ph ph-file-arrow-down"></i> Enregistrer en PDF
-                </button>
-                <button class="btn btn-secondaire" onclick="fermerModale()">
-                    Fermer
-                </button>
-            </div>
-            <p class="modale-note">Vous pouvez fermer cette fenêtre pour revenir
-               à vos réponses et les modifier.</p>
-        </div>
     </div>
 
     <script>
@@ -563,51 +559,47 @@
         /* « Terminer » : c'est l'envoi explicite au classeur. Le repli
            automatique sur pagehide reste en place pour les patients qui
            ferment l'onglet sans cliquer - statsFin ne part qu'une fois. */
-        const modaleFin = document.getElementById('modale-fin');
+        const bilanBarre = document.getElementById('bilan-barre');
         const btnTerminer = document.getElementById('btn-terminer');
 
+        /* « Terminer » affiche le bilan : c'est le même document que celui
+           qui s'imprime, présenté à l'écran. Le patient n'a rien à
+           télécharger pour le montrer à l'équipe. */
         function terminer() {
             statsDebut();
             statsFin();
             btnTerminer.disabled = true;
-            modaleFin.hidden = false;
-            modaleFin.classList.add('ouverte');
-            modaleFin.querySelector('.modale-boite').focus();
+
+            document.body.classList.add('bilan-ouvert');
+            bilanBarre.hidden = false;
+            printSummary.classList.add('a-l-ecran');
+            printSummary.removeAttribute('aria-hidden');
+            window.scrollTo({ top: 0 });
         }
 
         /* Fermer rend simplement la main : le patient peut vouloir corriger une
            réponse. Le bouton « Terminer » redevient actif, ici comme à la
            moindre modification (voir la fin de updateRecommendations). */
-        function fermerModale() {
-            modaleFin.classList.remove('ouverte');
-            modaleFin.hidden = true;
+        function fermerBilan() {
+            document.body.classList.remove('bilan-ouvert');
+            bilanBarre.hidden = true;
+            printSummary.classList.remove('a-l-ecran');
+            printSummary.setAttribute('aria-hidden', 'true');
             btnTerminer.disabled = false;
+            scrollToResults();
         }
 
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && !modaleFin.hidden) fermerModale();
+            if (e.key === 'Escape' && !bilanBarre.hidden) fermerBilan();
         });
 
-        modaleFin.addEventListener('click', function (e) {
-            if (e.target === modaleFin) fermerModale();
-        });
 
-        /* Après l'enregistrement, la page repart à neuf d'elle-même : le poste
-           est partagé, le patient suivant ne doit rien trouver à l'écran.
-           « afterprint » se déclenche à la fermeture de la boîte d'impression,
-           que le bilan ait été enregistré ou non — le navigateur ne permet pas
-           de distinguer les deux. */
-        let attenteImpression = false;
 
-        window.addEventListener('afterprint', function () {
-            if (!attenteImpression) return;
-            attenteImpression = false;
-            setTimeout(function () { location.reload(); }, 600);
-        });
-
+        /* Option de confort : l'écran reste le support principal. Ce que le
+           système fait du fichier — dossier de téléchargement, feuille de
+           partage — échappe à la page, d'où son rôle secondaire. */
         function enregistrerPdf() {
             statsPdf();
-            attenteImpression = true;
             window.print();
         }
 

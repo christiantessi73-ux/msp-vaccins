@@ -450,80 +450,10 @@ legend {
     border-left: 2px solid var(--border-color);
 }
 
-/* ================= Fenêtre de confirmation ================= */
-.modale {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    background: rgba(10, 30, 40, 0.55);
-    padding: 1.25rem;
-    align-items: center;
-    justify-content: center;
-}
-
-.modale.ouverte {
-    display: flex;
-}
-
-.modale-boite {
-    background: #fff;
-    border-radius: var(--radius);
-    padding: 2rem 1.75rem 1.5rem;
-    max-width: 440px;
-    width: 100%;
-    text-align: center;
-    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
-    outline: none;
-}
-
-.modale-icone {
-    font-size: 3rem;
-    color: var(--primary);
-    display: block;
-    margin-bottom: 0.5rem;
-}
-
-.modale-boite h2 {
-    font-size: 1.35rem;
-    color: var(--primary);
-    margin-bottom: 0.6rem;
-}
-
-.modale-boite > p {
-    color: var(--text-dark);
-    line-height: 1.5;
-}
-
-.modale-actions {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-top: 1.5rem;
-}
-
 .btn:disabled {
     opacity: 0.45;
     cursor: default;
     pointer-events: none;
-}
-
-.btn-secondaire {
-    background: transparent;
-    color: var(--text-gray);
-    border: 2px solid var(--border-color);
-}
-
-.btn-secondaire:hover {
-    border-color: var(--primary-light);
-    color: var(--primary);
-}
-
-.modale-note {
-    margin-top: 1rem;
-    font-size: 0.8rem;
-    color: var(--text-gray);
 }
 
 /* ========================= Étape 3 ========================= */
@@ -643,6 +573,165 @@ i {
 
 /* ========================= Impression ========================= */
 
+/* ============ Le bilan affiché à l'écran ============
+   Même document que la version imprimée, mais dans des unités d'écran.
+   Tout est enfermé dans @media screen : les règles d'impression, validées,
+   ne doivent surtout pas être recouvertes ici. */
+@media screen {
+    body.bilan-ouvert > header,
+    body.bilan-ouvert > .container,
+    body.bilan-ouvert > .summary-bar {
+        display: none;
+    }
+
+    body.bilan-ouvert {
+        background: #eef2f5;
+    }
+
+    .bilan-barre {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        background: var(--primary);
+        color: #fff;
+        padding: 1rem 1.25rem;
+        text-align: center;
+    }
+
+    .bilan-message {
+        max-width: 640px;
+        margin: 0 auto 0.9rem;
+        font-weight: 600;
+        line-height: 1.45;
+    }
+
+    .bilan-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .bilan-barre .btn-secondaire {
+        border-color: rgba(255, 255, 255, 0.6);
+        color: #fff;
+    }
+
+    .print-summary.a-l-ecran {
+        display: block;
+        /* La gouttière évite que la carte ne touche les bords du téléphone */
+        max-width: min(720px, calc(100% - 1.5rem));
+        margin: 1.5rem auto 3rem;
+        padding: 2rem 1.75rem;
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        color: var(--text-dark);
+        line-height: 1.5;
+    }
+
+    .a-l-ecran .ps-head {
+        border-bottom: 2px solid var(--primary);
+        padding-bottom: 0.6rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .a-l-ecran .ps-org {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--primary);
+    }
+
+    .a-l-ecran .ps-head h1 {
+        font-size: 1.6rem;
+        color: #111;
+        margin: 0.15rem 0 0;
+    }
+
+    .a-l-ecran .ps-date {
+        font-size: 0.8rem;
+        color: var(--text-gray);
+    }
+
+    .a-l-ecran h2 {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--primary);
+        margin: 0 0 0.5rem;
+        padding-bottom: 0.25rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .a-l-ecran .ps-count {
+        color: var(--text-gray);
+        font-weight: 400;
+    }
+
+    .a-l-ecran .ps-profil,
+    .a-l-ecran .ps-block {
+        margin-bottom: 1.5rem;
+    }
+
+    .a-l-ecran .ps-block ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .a-l-ecran .ps-block li {
+        padding: 0.6rem 0 0.6rem 0.75rem;
+        border-bottom: 1px dotted var(--border-color);
+        border-left: 3px solid transparent;
+    }
+
+    .a-l-ecran .ps-block li:last-child {
+        border-bottom: none;
+    }
+
+    .a-l-ecran .ps-todo li { border-left-color: var(--primary); }
+    .a-l-ecran .ps-unsure li { border-left-color: var(--accent); }
+    .a-l-ecran .ps-done li { border-left-color: #bbb; color: #666; }
+
+    .a-l-ecran .ps-name {
+        display: block;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .a-l-ecran .ps-short {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--text-gray);
+    }
+
+    .a-l-ecran .ps-foot {
+        margin-top: 1.5rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border-color);
+        font-size: 0.78rem;
+        color: var(--text-gray);
+    }
+
+    .a-l-ecran .ps-privacy {
+        margin-top: 0.25rem;
+        font-style: italic;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .print-summary.a-l-ecran {
+        padding: 1.5rem 1.15rem;
+    }
+
+    .a-l-ecran .ps-head h1 {
+        font-size: 1.4rem;
+    }
+}
+
 /* =========================================================
    Document imprimé : masqué à l'écran, seul visible au print
    ========================================================= */
@@ -660,7 +749,7 @@ i {
     body > header,
     body > .container,
     body > .summary-bar,
-    body > .modale {
+    body > .bilan-barre {
         display: none !important;
     }
 
