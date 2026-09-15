@@ -11,8 +11,8 @@
 
     <header>
         <h1>Êtes-vous à jour de vos vaccins ?</h1>
-        <p class="subtitle">Faites le point en 3 étapes, deux minutes.<br>
-        Vous verrez les vaccins recommandés à votre âge et dans votre situation.</p>
+        <p class="subtitle">Faites le point en 3 étapes, moins d'une minute.<br>
+        Vous verrez les vaccins recommandés à votre âge.</p>
     </header>
 
     <div class="container">
@@ -47,67 +47,16 @@
                     <span>L'âge des patients concernés par la vaccination en officine doit être de 11 ans et plus.</span>
                 </div>
 
-                <div class="form-group">
-                    <label class="checkbox-container toggle-situations">
-                        <input type="checkbox" id="has-situation">
-                        <span class="checkbox-text">Je suis dans une situation particulière (enceinte, immunodéprimé, voyage&nbsp;…)</span>
-                    </label>
-
-                    <div class="situations-list" id="situations-list">
-
-                        <fieldset class="situation-group">
-                            <legend><i class="ph ph-heartbeat"></i> Ma santé</legend>
-                            <label class="checkbox-container">
-                                <input type="checkbox" name="situation" value="immuno">
-                                <span><span class="shortcut-key">A</span>Je suis immunodéprimé <em>(baisse de mes défenses immunitaires)</em></span>
-                            </label>
-                            <label class="checkbox-container">
-                                <input type="checkbox" name="situation" value="maladie_chro">
-                                <span><span class="shortcut-key">B</span>J'ai du diabète, ou un problème cardiaque, respiratoire, rénal ou du foie</span>
-                            </label>
-                            <label class="checkbox-container">
-                                <input type="checkbox" name="situation" value="muco">
-                                <span><span class="shortcut-key">C</span>Je suis atteint de mucoviscidose</span>
-                            </label>
-                        </fieldset>
-
-                        <fieldset class="situation-group">
-                            <legend><i class="ph ph-user-circle"></i> Ma vie</legend>
-                            <label class="checkbox-container" id="lbl-enceinte">
-                                <input type="checkbox" name="situation" value="enceinte">
-                                <span><span class="shortcut-key">D</span>Je suis enceinte</span>
-                            </label>
-                            <label class="checkbox-container">
-                                <input type="checkbox" name="situation" value="pro_sante">
-                                <span><span class="shortcut-key">E</span>Je suis un professionnel de santé</span>
-                            </label>
-                            <label class="checkbox-container" id="lbl-hsh">
-                                <input type="checkbox" name="situation" value="hsh">
-                                <span><span class="shortcut-key">F</span>Je suis un homme ayant des relations avec des hommes</span>
-                            </label>
-                        </fieldset>
-
-                        <fieldset class="situation-group">
-                            <legend><i class="ph ph-airplane-tilt"></i> Voyage et épidémie</legend>
-                            <label class="checkbox-container">
-                                <input type="checkbox" name="situation" value="voyage">
-                                <span><span class="shortcut-key">G</span>Je pars en voyage</span>
-                            </label>
-                            <div class="sub-question" id="sub-voyage">
-                                <label class="checkbox-container">
-                                    <input type="checkbox" name="situation" value="voyage_afr_mecque">
-                                    <span>Je pars en Afrique ou je fais le pèlerinage à La Mecque</span>
-                                </label>
-                            </div>
-                            <label class="checkbox-container">
-                                <input type="checkbox" name="situation" value="epidemie">
-                                <span><span class="shortcut-key">H</span>Je suis en zone d'épidémie en cours <em>(📍 Rennes métropole)</em></span>
-                            </label>
-                        </fieldset>
-
-                        <p class="shortcut-hint">Astuce : les touches <kbd>A</kbd> à <kbd>H</kbd> cochent les cases directement.</p>
+                <div class="situation-note">
+                    <i class="ph ph-chat-circle-text"></i>
+                    <div>
+                        <strong>Vous êtes dans une situation particulière ?</strong>
+                        Grossesse, immunodépression, maladie chronique, voyage prévu,
+                        profession de santé… D'autres vaccins peuvent alors vous être
+                        recommandés : parlez-nous en, nous ferons le point avec vous.
                     </div>
                 </div>
+
             </section>
 
             <!-- ================= ÉTAPE 2 : VACCINS ================= -->
@@ -115,6 +64,7 @@
                 <h2><span class="step-num">2</span> Vos vaccins recommandés</h2>
 
                 <div id="results" aria-live="polite">
+                    <p id="profile-line" class="profile-line"></p>
                     <p id="result-count" class="result-count"></p>
                     <div id="global-hint" class="hint-msg">
                         <i class="ph ph-info"></i>
@@ -130,7 +80,6 @@
                         <div id="vaccines-done" class="vaccine-list"></div>
                     </div>
 
-                    <div id="travel-note" class="note-msg"></div>
                 </div>
             </section>
 
@@ -139,10 +88,9 @@
         <!-- ================= ÉTAPE 3 : CONTACT ================= -->
         <section class="section-card cta-section" id="step-contact">
             <h2><span class="step-num step-num-light">3</span> Parlez-en avec nous</h2>
-            <p>Nous pouvons faire le point au comptoir et, si vous le souhaitez, vous prescrire le ou les vaccin(s) qui vous sont recommandés et vous vacciner maintenant sans RDV.</p>
+            <p>Vos pharmaciens et médecins de la MSP Route de Vienne peuvent vérifier votre carnet, vous prescrire les vaccins recommandés et vous vacciner sur place, sans rendez-vous.</p>
             <div class="cta-buttons">
-                <button class="btn btn-light" onclick="printAndTrack()"><i class="ph ph-printer"></i> Imprimer / PDF</button>
-                <button class="btn btn-outline" onclick="closeAndTrack()">Fermer</button>
+                <button class="btn btn-light" id="btn-terminer" onclick="terminer()"><i class="ph ph-check-circle"></i> Terminer</button>
             </div>
         </section>
 
@@ -158,6 +106,27 @@
     <div class="summary-bar" id="summary-bar" hidden>
         <span id="summary-bar-text"></span>
         <button class="btn btn-light btn-sm" onclick="scrollToResults()">Voir</button>
+    </div>
+
+    <!-- Confirmation de fin : au centre de l'écran, pour être vue -->
+    <div class="modale" id="modale-fin" role="dialog" aria-modal="true"
+         aria-labelledby="modale-titre" hidden>
+        <div class="modale-boite" tabindex="-1">
+            <i class="ph ph-check-circle modale-icone" aria-hidden="true"></i>
+            <h2 id="modale-titre">C'est terminé, merci</h2>
+            <p>Enregistrez votre bilan et présentez-le à votre pharmacien
+               ou à votre médecin de la MSP.</p>
+            <div class="modale-actions">
+                <button class="btn btn-light" onclick="enregistrerPdf()">
+                    <i class="ph ph-file-arrow-down"></i> Enregistrer en PDF
+                </button>
+                <button class="btn btn-secondaire" onclick="fermerModale()">
+                    Fermer
+                </button>
+            </div>
+            <p class="modale-note">Vous pouvez fermer cette fenêtre pour revenir
+               à vos réponses et les modifier.</p>
+        </div>
     </div>
 
     <script>
@@ -228,35 +197,18 @@
             }
         };
 
-        const TRAVEL_NOTE = 'Nous, pharmaciens, ne pouvons pas encore prescrire les vaccins du voyageur 😞<br><br>'
-            + '<strong>💡 Voici cependant quelques conseils pour votre voyage :</strong><br><br>'
-            + '1️⃣ Anticiper ses vaccinations 2 à 3 mois avant le départ, avec votre médecin traitant ou dans un centre de vaccinations spécialisé.<br>'
-            + '2️⃣ Se mettre à jour du calendrier vaccinal français 🇫🇷 — parlez-en avec nous ! 🙂<br>'
-            + '3️⃣ Se faire vacciner selon la destination et les conditions du voyage 🧭 :'
-            + '<ul class="travel-list">'
-            + '<li>⚠️ Niveau sanitaire faible ➡️ Hépatite A</li>'
-            + '<li>🌏 Europe de l\'Est ou Asie ➡️ Diphtérie</li>'
-            + '<li>🌍 Afrique ➡️ Poliomyélite</li>'
-            + '<li>🌍 Afrique ou Amérique du Sud ➡️ Fièvre jaune</li>'
-            + '<li>👟 Pèlerinage à La Mecque ➡️ Méningite à méningocoque</li>'
-            + '<li>🌳 Aventure, zone rurale ou hygiène précaire ➡️ Typhoïde, rage, encéphalite à tiques, MPox</li>'
-            + '</ul>';
-
         /* ========================= DOM ========================= */
         const genreRadios = document.getElementsByName('genre');
         const ageInput = document.getElementById('age');
-        const hasSituationCheckbox = document.getElementById('has-situation');
-        const situationsList = document.getElementById('situations-list');
-        const situationCheckboxes = document.getElementsByName('situation');
 
         const genreStatus = document.getElementById('genre-status');
         const ageStatus = document.getElementById('age-status');
         const ageWarning = document.getElementById('age-warning');
 
         const globalHint = document.getElementById('global-hint');
+        const profileLine = document.getElementById('profile-line');
         const resultCount = document.getElementById('result-count');
         const vaccinesContainer = document.getElementById('vaccines');
-        const travelNote = document.getElementById('travel-note');
         const printSummary = document.getElementById('print-summary');
         const doneBlock = document.getElementById('done-block');
         const doneTitleText = document.getElementById('done-title-text');
@@ -269,83 +221,33 @@
         const summaryBar = document.getElementById('summary-bar');
         const summaryBarText = document.getElementById('summary-bar-text');
 
-        const lblHsh = document.getElementById('lbl-hsh');
-        const lblEnceinte = document.getElementById('lbl-enceinte');
-        const subVoyage = document.getElementById('sub-voyage');
-
         /* ============ Construction des recommandations ============
-           Une seule Map : un vaccin recommandé à la fois par l'âge et
-           par une situation n'apparaît qu'une fois, avec ses deux motifs.
+           Une seule Map : les recommandations découlent du genre et de
+           l'âge, chaque vaccin n'apparaissant qu'une seule fois.
            ========================================================= */
-        function buildRecommendations(genre, age, hasAge, situations) {
+        function buildRecommendations(genre, age, hasAge) {
             const map = new Map();
 
-            function add(name, source, reason) {
-                if (!map.has(name)) {
-                    map.set(name, { name: name, sources: new Set(), reasons: [] });
-                }
-                const entry = map.get(name);
-                entry.sources.add(source);
-                if (reason && entry.reasons.indexOf(reason) === -1) entry.reasons.push(reason);
+            function add(name) {
+                if (!map.has(name)) map.set(name, { name: name });
             }
 
             // --- Vaccins liés à l'âge ---
             if (genre && hasAge) {
                 if (age >= 11 && age <= 24) {
                     ['DTPc', 'HPV (Papillomavirus Humain)', 'Méningocoque', 'ROR', 'Hépatite B', 'Varicelle']
-                        .forEach(v => add(v, 'age', "Recommandé entre 11 et 24 ans"));
+                        .forEach(v => add(v));
                 } else if (age >= 25 && age <= 44) {
                     ['DTPc', 'ROR', 'Varicelle']
-                        .forEach(v => add(v, 'age', "Recommandé entre 25 et 44 ans"));
+                        .forEach(v => add(v));
                 } else if (age >= 45 && age <= 64) {
                     ['DTPc', 'ROR']
-                        .forEach(v => add(v, 'age', "Recommandé entre 45 et 64 ans"));
+                        .forEach(v => add(v));
                 } else if (age >= 65) {
                     ['DTPc', 'Grippe', 'Covid-19', 'Pneumocoque', 'Zona']
-                        .forEach(v => add(v, 'age', "Recommandé à partir de 65 ans"));
+                        .forEach(v => add(v));
                 }
             }
-
-            // --- Vaccins liés à la situation ---
-            situations.forEach(function (sit) {
-                if (sit === 'enceinte') {
-                    ['Grippe', 'Coqueluche', 'Bronchiolite / VRS', 'Covid-19']
-                        .forEach(v => add(v, 'situation', "Recommandé pendant la grossesse"));
-                }
-                if (sit === 'immuno') {
-                    const why = "Recommandé en raison de l'immunodépression";
-                    ['Grippe', 'Covid-19', 'Pneumocoque', 'Méningocoque'].forEach(v => add(v, 'situation', why));
-                    if (hasAge && age >= 18) add('Zona', 'situation', why);
-                }
-                if (sit === 'maladie_chro') {
-                    const why = "Recommandé en raison de votre maladie chronique";
-                    ['Grippe', 'Covid-19', 'Pneumocoque', 'Coqueluche'].forEach(v => add(v, 'situation', why));
-                    if (hasAge && age >= 60) add('Bronchiolite / VRS', 'situation', why);
-                }
-                if (sit === 'muco') {
-                    ['Grippe', 'Pneumocoque']
-                        .forEach(v => add(v, 'situation', "Recommandé en cas de mucoviscidose"));
-                }
-                if (sit === 'voyage_afr_mecque') {
-                    ['Méningocoque ACWY', 'Méningocoque B']
-                        .forEach(v => add(v, 'situation', "Recommandé pour l'Afrique ou le pèlerinage à La Mecque"));
-                }
-                if (sit === 'pro_sante') {
-                    ['Hépatite B', 'ROR', 'Grippe', 'Covid-19']
-                        .forEach(v => add(v, 'situation', "Recommandé pour les professionnels de santé"));
-                }
-                if (sit === 'hsh') {
-                    add('Hépatite A', 'situation', (hasAge && age <= 14)
-                        ? "Recommandé (schéma pédiatrique)"
-                        : "Recommandé dans votre situation");
-                }
-                if (sit === 'epidemie') {
-                    add('Méningocoque ACWY', 'situation', "Recommandé en zone d'épidémie en cours");
-                    if (hasAge && age >= 15 && age <= 24) {
-                        add('Méningocoque B', 'situation', "Recommandé en zone d'épidémie (15-24 ans)");
-                    }
-                }
-            });
 
             return map;
         }
@@ -363,13 +265,7 @@
             const safeName = escapeHtml(entry.name);
 
             let badges = '';
-            if (entry.sources.has('age')) badges += '<span class="badge badge-age">Âge</span>';
-            if (entry.sources.has('situation')) badges += '<span class="badge badge-situation">Situation</span>';
             if (status === 'unsure') badges += '<span class="badge badge-unsure">À vérifier</span>';
-
-            const reasons = entry.reasons.map(function (r) {
-                return '<li>' + escapeHtml(r) + '</li>';
-            }).join('');
 
             const details = info.long
                 ? '<details class="vaccine-more"><summary>En savoir plus</summary><p>' + info.long + '</p></details>'
@@ -386,7 +282,6 @@
                 + '</div>';
 
             const cls = 'vaccine-card'
-                + (entry.sources.has('situation') ? ' special' : '')
                 + (status === 'done' ? ' is-done' : '')
                 + (status === 'unsure' ? ' is-unsure' : '');
 
@@ -396,7 +291,6 @@
                 + '<div class="badges">' + badges + '</div>'
                 + '</div>'
                 + '<p class="vaccine-short">' + info.short + '</p>'
-                + '<ul class="vaccine-why">' + reasons + '</ul>'
                 + details
                 + choice
                 + '</article>';
@@ -417,36 +311,9 @@
             genreStatus.classList.toggle('visible', !!genre);
             ageStatus.classList.toggle('visible', hasAge);
 
-            // Situations propres à un genre
-            const hshCb = document.querySelector('input[value="hsh"]');
-            const enceinteCb = document.querySelector('input[value="enceinte"]');
-            if (genre === 'femme') {
-                lblHsh.hidden = true;
-                if (hshCb) hshCb.checked = false;
-                lblEnceinte.hidden = false;
-            } else if (genre === 'homme') {
-                lblEnceinte.hidden = true;
-                if (enceinteCb) enceinteCb.checked = false;
-                lblHsh.hidden = false;
-            } else {
-                lblHsh.hidden = false;
-                lblEnceinte.hidden = false;
-            }
-
-            // Sous-question « voyage »
-            const voyageCb = document.querySelector('input[value="voyage"]');
-            const afrCb = document.querySelector('input[value="voyage_afr_mecque"]');
-            const voyageChecked = !!(voyageCb && voyageCb.checked);
-            subVoyage.classList.toggle('active', voyageChecked);
-            if (!voyageChecked && afrCb) afrCb.checked = false;
-
             ageWarning.style.display = (hasAge && age < 11) ? 'flex' : 'none';
 
-            const situations = Array.from(situationCheckboxes)
-                .filter(function (cb) { return cb.checked; })
-                .map(function (cb) { return cb.value; });
-
-            const recos = buildRecommendations(genre, age, hasAge, situations);
+            const recos = buildRecommendations(genre, age, hasAge);
 
             // Deux listes : ce qu'il reste à faire, et ce que le patient dit avoir fait
             let todoHtml = "";
@@ -469,13 +336,15 @@
                 ? doneCount + " vaccins déjà faits"
                 : "1 vaccin déjà fait";
 
-            // Conseils voyageur (information, pas une prescription)
-            if (situations.indexOf('voyage') !== -1) {
-                travelNote.innerHTML = '<h3><i class="ph ph-airplane-takeoff"></i> Avis aux voyageurs</h3>' + TRAVEL_NOTE;
-                travelNote.style.display = 'block';
+            // Le motif est identique pour toutes les cartes : on l'annonce
+            // une seule fois ici plutôt que de le répéter sur chacune.
+            if (genre && hasAge && recos.size > 0) {
+                profileLine.textContent = "Recommandations pour "
+                    + (genre === 'homme' ? "un homme" : "une femme")
+                    + " de " + age + " ans";
+                profileLine.style.display = 'block';
             } else {
-                travelNote.innerHTML = '';
-                travelNote.style.display = 'none';
+                profileLine.style.display = 'none';
             }
 
             // Compteur et message d'attente
@@ -484,7 +353,7 @@
             if (count > 0) {
                 globalHint.style.display = 'none';
                 if (todoCount === 0) {
-                    resultCount.textContent = "Rien à faire d'après vos réponses — nous vérifierons avec votre carnet.";
+                    resultCount.textContent = "Rien à faire d'après vos réponses - nous vérifierons avec votre carnet.";
                 } else {
                     resultCount.textContent = (todoCount > 1)
                         ? todoCount + " vaccins vous restent à faire"
@@ -496,7 +365,7 @@
                 resultCount.style.display = 'none';
                 globalHint.style.display = 'flex';
                 globalHint.querySelector('span').textContent = (genre && hasAge)
-                    ? "Aucun vaccin spécifiquement recommandé pour ce profil. Parlons-en au comptoir."
+                    ? "Aucun vaccin spécifiquement recommandé pour ce profil. Parlons-en ensemble."
                     : "Renseignez votre genre et votre âge pour afficher vos recommandations.";
             }
 
@@ -512,14 +381,16 @@
                 }
             }
 
-            buildPrintSummary(genre, age, hasAge, situations, recos);
+            buildPrintSummary(genre, age, hasAge, recos);
+
+            // Une modification après coup redonne accès à « Terminer »
+            btnTerminer.disabled = false;
 
             // Photographie de l'état courant, envoyée en un seul bloc à la fin
             statsEtat = {
                 complet: (genre && hasAge) ? 1 : 0,
                 tranche: trancheAge(age, hasAge),
-                nb: count,
-                sit: situations.length > 0 ? 1 : 0
+                nb: count
             };
         }
 
@@ -539,60 +410,27 @@
         }
 
         /* ======================= Événements ======================= */
-        hasSituationCheckbox.addEventListener('change', function (e) {
-            situationsList.classList.toggle('active', e.target.checked);
-            if (!e.target.checked) {
-                Array.from(situationCheckboxes).forEach(function (cb) { cb.checked = false; });
-            }
-            updateRecommendations();
-        });
-
         document.querySelectorAll('input').forEach(function (input) {
             input.addEventListener('input', updateRecommendations);
             input.addEventListener('change', updateRecommendations);
         });
 
-        // Raccourcis clavier A → H
         /* ============ Document imprimé ============
            L'écran est un questionnaire, le papier est un compte rendu :
            on le compose séparément plutôt que de masquer des morceaux. */
-        const SITUATION_LABELS = {
-            immuno: "Immunodépression",
-            maladie_chro: "Maladie chronique (diabète, cœur, poumons, reins ou foie)",
-            muco: "Mucoviscidose",
-            enceinte: "Grossesse",
-            pro_sante: "Professionnel de santé",
-            hsh: "Homme ayant des relations avec des hommes",
-            voyage: "Voyage prévu",
-            voyage_afr_mecque: "Voyage en Afrique ou pèlerinage à La Mecque",
-            epidemie: "Zone d'épidémie en cours (Rennes métropole)"
-        };
-
-        const TRAVEL_PRINT = [
-            "Niveau sanitaire faible : hépatite A",
-            "Europe de l'Est ou Asie : diphtérie",
-            "Afrique : poliomyélite",
-            "Afrique ou Amérique du Sud : fièvre jaune",
-            "Pèlerinage à La Mecque : méningite à méningocoque",
-            "Aventure, zone rurale ou hygiène précaire : typhoïde, rage, encéphalite à tiques, MPox"
-        ];
-
         function printList(title, entries, extraClass) {
             if (entries.length === 0) return '';
             const items = entries.map(function (entry) {
                 const info = VACCINES[entry.name] || { short: '' };
-                const why = entry.reasons.length
-                    ? '<span class="ps-why">' + escapeHtml(entry.reasons.join(' · ')) + '</span>'
-                    : '';
                 return '<li><span class="ps-name">' + escapeHtml(entry.name) + '</span>'
-                    + '<span class="ps-short">' + info.short + '</span>' + why + '</li>';
+                    + '<span class="ps-short">' + info.short + '</span></li>';
             }).join('');
             return '<section class="ps-block ' + extraClass + '">'
                 + '<h2>' + title + ' <span class="ps-count">(' + entries.length + ')</span></h2>'
                 + '<ul>' + items + '</ul></section>';
         }
 
-        function buildPrintSummary(genre, age, hasAge, situations, recos) {
+        function buildPrintSummary(genre, age, hasAge, recos) {
             const todo = [];
             const unsure = [];
             const done = [];
@@ -607,10 +445,6 @@
             if (genre) profil.push(genre === 'homme' ? "Homme" : "Femme");
             if (hasAge) profil.push(age + " ans");
 
-            const sits = situations
-                .map(function (s) { return SITUATION_LABELS[s]; })
-                .filter(Boolean);
-
             let html = '<header class="ps-head">'
                 + '<p class="ps-org">MSP Route de Vienne</p>'
                 + '<h1>Bilan vaccinal</h1>'
@@ -620,35 +454,22 @@
             html += '<section class="ps-profil">'
                 + '<h2>Profil</h2>'
                 + '<p>' + (profil.length ? escapeHtml(profil.join(' · ')) : "Non renseigné") + '</p>'
-                + (sits.length
-                    ? '<p class="ps-sits"><span>Situations déclarées :</span> ' + escapeHtml(sits.join(' · ')) + '</p>'
-                    : '')
                 + '</section>';
 
             if (recos.size === 0) {
                 html += '<section class="ps-block"><p class="ps-empty">'
                     + "Aucun vaccin spécifiquement recommandé pour ce profil. "
-                    + "Faisons le point ensemble au comptoir.</p></section>";
+                    + "Faisons le point ensemble.</p></section>";
             } else {
                 html += printList("À faire", todo, 'ps-todo');
                 html += printList("À vérifier avec votre carnet", unsure, 'ps-unsure');
                 html += printList("Déjà fait, d'après vos déclarations", done, 'ps-done');
             }
 
-            if (situations.indexOf('voyage') !== -1) {
-                html += '<section class="ps-block ps-travel"><h2>Voyage</h2>'
-                    + '<p>Les vaccins du voyageur ne peuvent pas être prescrits en officine. '
-                    + 'Anticipez 2 à 3 mois avant le départ, avec votre médecin traitant ou un centre '
-                    + 'de vaccinations internationales. Selon la destination :</p>'
-                    + '<ul class="ps-plain">'
-                    + TRAVEL_PRINT.map(function (t) { return '<li>' + escapeHtml(t) + '</li>'; }).join('')
-                    + '</ul></section>';
-            }
-
             html += '<footer class="ps-foot">'
                 + "<p>Ce document n'est pas une ordonnance. Il récapitule les recommandations "
                 + "du calendrier vaccinal pour le profil déclaré, sans consultation du carnet "
-                + "de vaccination. Présentez-le au comptoir : nous pouvons vérifier, prescrire "
+                + "de vaccination. Présentez-le à la MSP : nous pouvons vérifier, prescrire "
                 + "et vacciner sur place, sans rendez-vous.</p>"
                 + '<p class="ps-privacy">Aucune donnée saisie n\'a été enregistrée ni transmise.</p>'
                 + '</footer>';
@@ -656,55 +477,26 @@
             printSummary.innerHTML = html;
         }
 
-        const SHORTCUTS = {
-            a: 'immuno', b: 'maladie_chro', c: 'muco',
-            d: 'enceinte', e: 'pro_sante', f: 'hsh',
-            g: 'voyage', h: 'epidemie'
-        };
-
-        document.addEventListener('keydown', function (e) {
-            if (e.ctrlKey || e.altKey || e.metaKey) return;
-            const tag = document.activeElement ? document.activeElement.tagName : '';
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
-            const value = SHORTCUTS[e.key.toLowerCase()];
-            if (!value) return;
-
-            const cb = document.querySelector('input[value="' + value + '"]');
-            if (!cb) return;
-            const container = cb.closest('.checkbox-container');
-            if (container && container.hidden) return;
-
-            if (!hasSituationCheckbox.checked) {
-                hasSituationCheckbox.checked = true;
-                situationsList.classList.add('active');
-            }
-            cb.checked = !cb.checked;
-            e.preventDefault();
-            updateRecommendations();
-        });
-
         /* ================ Statistiques anonymes ================ */
         /* ============== Indicateurs anonymes ==============
            Destinés au rapport d'activité de prévention (Assurance Maladie).
 
            Aucune donnée individuelle ne sort de la page : au plus deux envois
-           par visite, sans identifiant, sans cookie, sans horodatage — c'est le
-           serveur qui date au mois. Le détail des situations particulières
-           n'est JAMAIS transmis, seulement le fait qu'il y en ait au moins une :
-           « femme, 32 ans, mucoviscidose » désignerait une personne, pas « 1 ».
+           par visite, sans identifiant, sans cookie, sans horodatage - c'est le
+           serveur qui date au mois. Seuls une tranche d'âge et un nombre de
+           vaccins sont transmis : « 45-64 ans, 4 vaccins » ne désigne personne.
 
            Le serveur (voir apps-script/Code.gs) n'écrit que des compteurs
            mensuels, jamais une ligne par visite.
 
            Tant que STATS_ENDPOINT est vide, rien n'est envoyé : les envois
            sont seulement affichés dans la console. */
-        const STATS_ENDPOINT = "";
+        const STATS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxm1ilbzrNRDX38Vr50M_Df5jQLKExNy9zT4E0aw6nYRhwF2DfBn-HrqziBDys-MdMd/exec";
 
         let statsDebutEnvoye = false;
         let statsFinEnvoye = false;
-        let statsImprime = 0;
-        let statsEtat = { complet: 0, tranche: 'nr', nb: 0, sit: 0 };
+        let statsPdfEnvoye = false;
+        let statsEtat = { complet: 0, tranche: 'nr', nb: 0 };
 
         function envoyerStats(payload) {
             if (!STATS_ENDPOINT) {
@@ -737,10 +529,16 @@
                 e: 'fin',
                 complet: statsEtat.complet,
                 tranche: statsEtat.tranche,
-                nb: statsEtat.nb,
-                sit: statsEtat.sit,
-                print: statsImprime
+                nb: statsEtat.nb
             });
+        }
+
+        /* Envoyé séparément : le bilan s'enregistre après « Terminer »,
+           donc après que le paquet « fin » soit déjà parti. */
+        function statsPdf() {
+            if (statsPdfEnvoye) return;
+            statsPdfEnvoye = true;
+            envoyerStats({ e: 'pdf' });
         }
 
         function trancheAge(age, hasAge) {
@@ -762,17 +560,55 @@
         });
         window.addEventListener('pagehide', statsFin);
 
-        function printAndTrack() {
-            statsImprime = 1;
+        /* « Terminer » : c'est l'envoi explicite au classeur. Le repli
+           automatique sur pagehide reste en place pour les patients qui
+           ferment l'onglet sans cliquer - statsFin ne part qu'une fois. */
+        const modaleFin = document.getElementById('modale-fin');
+        const btnTerminer = document.getElementById('btn-terminer');
+
+        function terminer() {
             statsDebut();
             statsFin();
-            window.print();
+            btnTerminer.disabled = true;
+            modaleFin.hidden = false;
+            modaleFin.classList.add('ouverte');
+            modaleFin.querySelector('.modale-boite').focus();
         }
 
-        function closeAndTrack() {
-            statsDebut();
-            statsFin();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        /* Fermer rend simplement la main : le patient peut vouloir corriger une
+           réponse. Le bouton « Terminer » redevient actif, ici comme à la
+           moindre modification (voir la fin de updateRecommendations). */
+        function fermerModale() {
+            modaleFin.classList.remove('ouverte');
+            modaleFin.hidden = true;
+            btnTerminer.disabled = false;
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !modaleFin.hidden) fermerModale();
+        });
+
+        modaleFin.addEventListener('click', function (e) {
+            if (e.target === modaleFin) fermerModale();
+        });
+
+        /* Après l'enregistrement, la page repart à neuf d'elle-même : le poste
+           est partagé, le patient suivant ne doit rien trouver à l'écran.
+           « afterprint » se déclenche à la fermeture de la boîte d'impression,
+           que le bilan ait été enregistré ou non — le navigateur ne permet pas
+           de distinguer les deux. */
+        let attenteImpression = false;
+
+        window.addEventListener('afterprint', function () {
+            if (!attenteImpression) return;
+            attenteImpression = false;
+            setTimeout(function () { location.reload(); }, 600);
+        });
+
+        function enregistrerPdf() {
+            statsPdf();
+            attenteImpression = true;
+            window.print();
         }
 
         updateRecommendations();

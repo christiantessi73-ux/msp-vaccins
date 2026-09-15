@@ -6,3 +6,8 @@ dist/
 
 # Photo de l'affiche du comptoir : document de travail, pas un fichier du site
 *.jpg
+
+# Documents administratifs (bon de commande, facture) : jamais sur GitHub
+*.pdf
+# ... sauf l'affiche, qui est un livrable du projet
+!affiche-*.pdf

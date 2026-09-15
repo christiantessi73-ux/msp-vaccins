@@ -20,6 +20,12 @@ Le classeur contient deux feuilles :
   totaux depuis le début, taux de complétion, moyenne de vaccins, part des
   45 ans et plus, puis le détail mois par mois. Rien à saisir, tout se
   recalcule seul.
+
+  Deux graphiques s'y actualisent seuls : la répartition des questionnaires
+  complétés par tranche d'âge, et l'activité mois par mois (commencés face aux
+  complétés). Des colonnes, jamais de camembert : un secteur ne permet pas de
+  comparer des valeurs proches, ce qui est précisément la question posée. Leurs
+  deux couleurs restent distinguables en vision des couleurs déficiente.
 - **`Indicateurs`** — les compteurs bruts, alimentés par le site. On n'y touche
   pas à la main.
 
@@ -65,7 +71,6 @@ Une ligne par mois, dans la feuille `Indicateurs` :
 | `Questionnaires commencés` | Première interaction avec le formulaire |
 | `Questionnaires complétés` | Genre **et** âge renseignés |
 | `11-24 ans` … `65 ans et plus` | Répartition des questionnaires complétés |
-| `Avec situation particulière` | Au moins une situation déclarée — **jamais laquelle** |
 | `Total vaccins recommandés` | Somme, à diviser par les complétés pour la moyenne |
 | `Impressions PDF` | Clics sur « Imprimer / PDF », indicateur d'intention |
 
@@ -78,9 +83,11 @@ Moyenne de vaccins par questionnaire = `Total vaccins recommandés` ÷
 tranche d'âge, un mois donné, dans une officine donnée, redevient identifiant.
 En dessous de 5, regrouper les mois ou les tranches.
 
-**Le détail des situations n'est pas collecté, et ne doit pas l'être.**
-« 1 questionnaire, 11-24 ans, mucoviscidose » désigne une personne. Seul le
-booléen « au moins une situation » remonte.
+**Aucune situation particulière n'est collectée.** Depuis la simplification
+demandée par la MSP en septembre 2026, le questionnaire ne pose plus la question :
+il invite le patient à en parler à l'équipe. Si elle devait revenir un jour, ne
+jamais remonter le détail — « 1 questionnaire, 11-24 ans, mucoviscidose »
+désigne une personne.
 
 ## Ce que ces chiffres ne disent pas
 

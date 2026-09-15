@@ -211,143 +211,6 @@ legend {
     opacity: 1;
 }
 
-/* ========================= Cases à cocher ========================= */
-.checkbox-container {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 0;
-    cursor: pointer;
-    font-weight: 400;
-    line-height: 1.45;
-}
-
-.checkbox-container[hidden] {
-    display: none;
-}
-
-.checkbox-container input[type="checkbox"] {
-    flex: 0 0 auto;
-    margin-top: 3px;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    accent-color: var(--primary);
-}
-
-.checkbox-container em {
-    color: var(--text-gray);
-    font-style: normal;
-    font-size: 0.9em;
-}
-
-.toggle-situations {
-    padding: 0.9rem 1rem;
-    border: 2px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    transition: var(--transition);
-}
-
-.toggle-situations:hover {
-    border-color: var(--primary-light);
-}
-
-.checkbox-text {
-    font-weight: 600;
-}
-
-/* ================= Liste des situations ================= */
-.situations-list {
-    display: none;
-    margin-top: 1rem;
-    padding: 1.25rem;
-    background: #f9fbfc;
-    border-radius: var(--radius-sm);
-    border-left: 3px solid var(--accent);
-    animation: slideDown 0.25s ease forwards;
-}
-
-.situations-list.active {
-    display: block;
-}
-
-.situation-group {
-    border: none;
-    margin-bottom: 1.5rem;
-}
-
-.situation-group:last-of-type {
-    margin-bottom: 0.5rem;
-}
-
-.situation-group legend {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--accent);
-    margin-bottom: 0.9rem;
-    padding-bottom: 0.4rem;
-    border-bottom: 1px solid var(--border-color);
-    width: 100%;
-}
-
-.situation-group legend i {
-    font-size: 1rem;
-}
-
-.situation-group .checkbox-container {
-    margin-bottom: 0.9rem;
-}
-
-.sub-question {
-    display: none;
-    margin: -0.4rem 0 0.9rem 36px;
-    padding: 0.75rem 1rem;
-    background: #fff;
-    border: 1px dashed var(--accent);
-    border-radius: var(--radius-sm);
-}
-
-.sub-question.active {
-    display: block;
-    animation: slideDown 0.25s ease forwards;
-}
-
-.sub-question .checkbox-container {
-    margin-bottom: 0;
-    font-size: 0.95rem;
-}
-
-.shortcut-key {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    background-color: #e9ecef;
-    color: #495057;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    margin-right: 8px;
-    border: 1px solid #ced4da;
-    vertical-align: middle;
-}
-
-.shortcut-hint {
-    font-size: 0.8rem;
-    color: var(--text-gray);
-    margin-top: 0.5rem;
-}
-
-kbd {
-    background: #e9ecef;
-    border: 1px solid #ced4da;
-    border-radius: 3px;
-    padding: 0 4px;
-    font-size: 0.75rem;
-}
-
 /* ========================= Messages ========================= */
 .hint-msg,
 .warning-msg {
@@ -376,7 +239,46 @@ kbd {
     flex: 0 0 auto;
 }
 
+/* Message « situation particulière » : information permanente, remplace
+   les cases à cocher retirées à la demande de la MSP. */
+.situation-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 1rem;
+    margin-top: 1.25rem;
+    border-radius: var(--radius-sm);
+    background: #eaf4f7;
+    border-left: 4px solid var(--primary);
+    color: #16535f;
+    line-height: 1.5;
+}
+
+.situation-note i {
+    flex: 0 0 auto;
+    font-size: 1.35rem;
+    color: var(--primary);
+    margin-top: 1px;
+}
+
+.situation-note strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--primary);
+}
+
 /* ========================= Résultats ========================= */
+/* Motif des recommandations : identique pour toutes les cartes, donc
+   annonce une seule fois au-dessus de la liste. */
+.profile-line {
+    display: none;
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
 .result-count {
     display: none;
     font-size: 1.05rem;
@@ -402,10 +304,6 @@ kbd {
     padding: 1.1rem 1.2rem;
     transition: var(--transition);
     animation: fadeIn 0.3s ease forwards;
-}
-
-.vaccine-card.special {
-    border-left-color: var(--warning);
 }
 
 .vaccine-card:hover {
@@ -440,16 +338,6 @@ kbd {
     padding: 2px 8px;
     border-radius: 20px;
     white-space: nowrap;
-}
-
-.badge-age {
-    background: rgba(27, 122, 138, 0.12);
-    color: var(--primary);
-}
-
-.badge-situation {
-    background: rgba(245, 166, 35, 0.16);
-    color: #8a5a00;
 }
 
 .badge-unsure {
@@ -543,25 +431,6 @@ kbd {
     margin-top: 0.3rem;
 }
 
-.vaccine-why {
-    list-style: none;
-    margin-top: 0.6rem;
-}
-
-.vaccine-why li {
-    font-size: 0.82rem;
-    color: var(--warning-text);
-    padding-left: 16px;
-    position: relative;
-}
-
-.vaccine-why li::before {
-    content: "•";
-    position: absolute;
-    left: 3px;
-    color: var(--warning-text);
-}
-
 .vaccine-more {
     margin-top: 0.7rem;
 }
@@ -581,30 +450,80 @@ kbd {
     border-left: 2px solid var(--border-color);
 }
 
-/* Encadré « Avis aux voyageurs » */
-.note-msg {
+/* ================= Fenêtre de confirmation ================= */
+.modale {
     display: none;
-    margin-top: 1.25rem;
-    padding: 1.2rem;
-    background: #eef4fb;
-    border: 1px solid #cfe0f3;
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(10, 30, 40, 0.55);
+    padding: 1.25rem;
+    align-items: center;
+    justify-content: center;
 }
 
-.note-msg h3 {
-    font-size: 1rem;
-    color: var(--accent);
-    margin-bottom: 0.7rem;
+.modale.ouverte {
+    display: flex;
 }
 
-.travel-list {
-    list-style: none;
-    margin: 0.6rem 0 0 0.5rem;
+.modale-boite {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 2rem 1.75rem 1.5rem;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+    outline: none;
 }
 
-.travel-list li {
-    margin-bottom: 0.25rem;
+.modale-icone {
+    font-size: 3rem;
+    color: var(--primary);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.modale-boite h2 {
+    font-size: 1.35rem;
+    color: var(--primary);
+    margin-bottom: 0.6rem;
+}
+
+.modale-boite > p {
+    color: var(--text-dark);
+    line-height: 1.5;
+}
+
+.modale-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
+
+.btn-secondaire {
+    background: transparent;
+    color: var(--text-gray);
+    border: 2px solid var(--border-color);
+}
+
+.btn-secondaire:hover {
+    border-color: var(--primary-light);
+    color: var(--primary);
+}
+
+.modale-note {
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-gray);
 }
 
 /* ========================= Étape 3 ========================= */
@@ -653,16 +572,6 @@ kbd {
 
 .btn-light:hover {
     background: #e9ecef;
-}
-
-.btn-outline {
-    background: transparent;
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.6);
-}
-
-.btn-outline:hover {
-    background: rgba(255, 255, 255, 0.12);
 }
 
 .btn-sm {
@@ -750,7 +659,8 @@ i {
     /* L'interface disparaît entièrement, le compte rendu prend sa place */
     body > header,
     body > .container,
-    body > .summary-bar {
+    body > .summary-bar,
+    body > .modale {
         display: none !important;
     }
 
@@ -812,15 +722,6 @@ i {
         margin-bottom: 16px;
     }
 
-    .ps-sits {
-        font-size: 9.5pt;
-        color: #333;
-    }
-
-    .ps-sits span {
-        font-weight: 700;
-    }
-
     .ps-block {
         margin-bottom: 16px;
         break-inside: avoid;
@@ -858,30 +759,6 @@ i {
         display: block;
         font-size: 9.5pt;
         color: #444;
-    }
-
-    .ps-why {
-        display: block;
-        font-size: 8.5pt;
-        color: #A85D00;
-    }
-
-    .ps-done .ps-why { display: none; }
-
-    .ps-plain {
-        list-style: disc;
-        margin: 6px 0 0 18px;
-        padding: 0;
-        font-size: 9.5pt;
-    }
-
-    .ps-plain li {
-        border: none;
-        padding: 1px 0;
-    }
-
-    .ps-travel p {
-        font-size: 9.5pt;
     }
 
     .ps-empty {
