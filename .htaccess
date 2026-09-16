@@ -4,6 +4,12 @@
 # Apache ignore les directives au lieu de renvoyer une erreur 500 sur tout
 # le site. Sur un hébergement mutualisé, on ne choisit pas ce qui est actif.
 
+# ---- Sonde temporaire ----
+# ErrorDocument est une directive du coeur d'Apache : elle ne dépend
+# d'aucun module. Si ce texte apparaît sur une page inexistante, le
+# fichier est lu ; sinon, l'hébergement ignore les .htaccess.
+ErrorDocument 404 "sonde-htaccess-active"
+
 # ---- Tout le monde en HTTPS ----
 # Le site servait encore en clair à qui tapait l'adresse sans « https ».
 # La double condition évite la boucle de redirection : on ne redirige que
