@@ -39,7 +39,8 @@
 
                 <div class="form-group">
                     <label for="age">Âge <span id="age-status" class="status-icon" aria-hidden="true">✅</span></label>
-                    <input type="number" id="age" class="input-field" min="0" max="120" placeholder="Entrez votre âge">
+                    <input type="number" id="age" class="input-field" min="0" max="120"
+                           placeholder="Sélectionnez d'abord votre genre" disabled>
                 </div>
 
                 <div id="age-warning" class="warning-msg">
@@ -47,7 +48,7 @@
                     <span>L'âge des patients concernés par la vaccination en officine doit être de 11 ans et plus.</span>
                 </div>
 
-                <div class="situation-note">
+                <div class="situation-note" id="situation-note" hidden>
                     <i class="ph ph-chat-circle-text"></i>
                     <div>
                         <strong>Vous êtes dans une situation particulière ?</strong>
@@ -88,7 +89,7 @@
         <!-- ================= ÉTAPE 3 : CONTACT ================= -->
         <section class="section-card cta-section" id="step-contact">
             <h2><span class="step-num step-num-light">3</span> Parlez-en avec nous</h2>
-            <p>Vos pharmaciens et médecins de la MSP Route de Vienne peuvent vérifier votre carnet, vous prescrire les vaccins recommandés et vous vacciner sur place, sans rendez-vous.</p>
+            <p>À la MSP Route de Vienne, vos <strong>pharmaciens vous vaccinent sur place, sans rendez-vous</strong>. Vos <strong>médecins</strong> peuvent vérifier votre carnet et vous prescrire les vaccins recommandés, <strong>sur rendez-vous</strong>.</p>
             <div class="cta-buttons">
                 <button class="btn btn-light" id="btn-terminer" onclick="terminer()"><i class="ph ph-check-circle"></i> Terminer</button>
             </div>
@@ -200,6 +201,7 @@
         const genreStatus = document.getElementById('genre-status');
         const ageStatus = document.getElementById('age-status');
         const ageWarning = document.getElementById('age-warning');
+        const situationNote = document.getElementById('situation-note');
 
         const globalHint = document.getElementById('global-hint');
         const profileLine = document.getElementById('profile-line');
@@ -307,7 +309,18 @@
             genreStatus.classList.toggle('visible', !!genre);
             ageStatus.classList.toggle('visible', hasAge);
 
+            // L'âge se saisit après le genre : une étape à la fois, et la
+            // recommandation n'a de sens qu'une fois les deux connus.
+            ageInput.disabled = !genre;
+            ageInput.placeholder = genre
+                ? "Entrez votre âge"
+                : "Sélectionnez d'abord votre genre";
+
             ageWarning.style.display = (hasAge && age < 11) ? 'flex' : 'none';
+
+            // Le mot sur les situations particulières arrive une fois le
+            // profil connu : avant, il encombre un formulaire encore vide.
+            situationNote.hidden = !(genre && hasAge);
 
             const recos = buildRecommendations(genre, age, hasAge);
 
@@ -462,11 +475,20 @@
                 html += printList("Déjà fait, d'après vos déclarations", done, 'ps-done');
             }
 
+            html += '<section class="ps-block ps-situation">'
+                + '<h2>Une situation particulière ?</h2>'
+                + "<p>Grossesse, immunodépression, maladie chronique, voyage prévu, "
+                + "profession de santé… D'autres vaccins peuvent alors vous être "
+                + "recommandés, et ils ne figurent pas dans cette liste. "
+                + "Parlez-nous en : nous ferons le point avec vous.</p>"
+                + '</section>';
+
             html += '<footer class="ps-foot">'
                 + "<p>Ce document n'est pas une ordonnance. Il récapitule les recommandations "
                 + "du calendrier vaccinal pour le profil déclaré, sans consultation du carnet "
-                + "de vaccination. Présentez-le à la MSP : nous pouvons vérifier, prescrire "
-                + "et vacciner sur place, sans rendez-vous.</p>"
+                + "de vaccination. Présentez-le à la MSP : en pharmacie, la vaccination "
+                + "se fait sur place et sans rendez-vous ; pour la vérification du carnet "
+                + "et la prescription, votre médecin vous reçoit sur rendez-vous.</p>"
                 + '<p class="ps-privacy">Aucune donnée saisie n\'a été enregistrée ni transmise.</p>'
                 + '</footer>';
 

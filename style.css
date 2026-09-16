@@ -150,6 +150,7 @@ legend {
 }
 
 .radio-card {
+    touch-action: manipulation;
     position: relative;
     margin-bottom: 0;
 }
@@ -197,6 +198,19 @@ legend {
 .input-field:focus {
     outline: none;
     border-color: var(--primary);
+}
+
+/* Tant que le genre n'est pas choisi, l'âge reste fermé : assez grisé
+   pour qu'on le comprenne, assez lisible pour qu'on sache ce qui vient. */
+.input-field:disabled {
+    background: #f4f6f8;
+    border-color: #e4e9ed;
+    color: var(--text-gray);
+    cursor: not-allowed;
+}
+
+.input-field:disabled::placeholder {
+    color: #a4afb7;
 }
 
 .status-icon {
@@ -261,6 +275,11 @@ legend {
     margin-top: 1px;
 }
 
+/* display:flex l'emporterait sur l'attribut hidden : on le neutralise ici. */
+.situation-note[hidden] {
+    display: none;
+}
+
 .situation-note strong {
     display: block;
     margin-bottom: 0.25rem;
@@ -306,8 +325,13 @@ legend {
     animation: fadeIn 0.3s ease forwards;
 }
 
-.vaccine-card:hover {
-    box-shadow: var(--shadow);
+/* Sur un écran tactile, un style de survol coûte un appui : le premier
+   sert à afficher le survol, le second seulement déclenche le clic. D'où
+   @media (hover: hover) sur chacune de ces règles. */
+@media (hover: hover) {
+    .vaccine-card:hover {
+        box-shadow: var(--shadow);
+    }
 }
 
 .vaccine-head {
@@ -364,12 +388,21 @@ legend {
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
+    touch-action: manipulation;
     transition: var(--transition);
 }
 
-.chip:hover {
-    border-color: var(--primary-light);
-    color: var(--primary);
+/* :active répond au doigt comme à la souris : l'appui se voit avant même
+   que la liste ne se réorganise. */
+.chip:active {
+    transform: scale(0.96);
+}
+
+@media (hover: hover) {
+    .chip:hover {
+        border-color: var(--primary-light);
+        color: var(--primary);
+    }
 }
 
 .chip-on {
@@ -378,8 +411,10 @@ legend {
     color: #fff;
 }
 
-.chip-on:hover {
-    color: #fff;
+@media (hover: hover) {
+    .chip-on:hover {
+        color: #fff;
+    }
 }
 
 .vaccine-card.is-unsure {
@@ -487,6 +522,7 @@ legend {
     font-size: 1rem;
     border: 2px solid transparent;
     cursor: pointer;
+    touch-action: manipulation;
     transition: var(--transition);
 }
 
@@ -500,8 +536,10 @@ legend {
     color: var(--primary);
 }
 
-.btn-light:hover {
-    background: #e9ecef;
+@media (hover: hover) {
+    .btn-light:hover {
+        background: #e9ecef;
+    }
 }
 
 .btn-sm {
@@ -612,9 +650,18 @@ i {
         flex-wrap: wrap;
     }
 
+    /* Second choix par la hiérarchie, pas par l'effacement : un contour
+       pâle le faisait passer pour un bouton désactivé. */
     .bilan-barre .btn-secondaire {
-        border-color: rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.16);
+        border-color: #fff;
         color: #fff;
+    }
+
+    @media (hover: hover) {
+        .bilan-barre .btn-secondaire:hover {
+            background: rgba(255, 255, 255, 0.28);
+        }
     }
 
     .print-summary.a-l-ecran {
@@ -706,6 +753,15 @@ i {
         display: block;
         font-size: 0.85rem;
         color: var(--text-gray);
+    }
+
+    .a-l-ecran .ps-situation p {
+        font-size: 0.9rem;
+        padding: 0.75rem 0.9rem;
+        background: #eaf4f7;
+        border-left: 3px solid var(--primary);
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        color: #16535f;
     }
 
     .a-l-ecran .ps-foot {
@@ -852,6 +908,12 @@ i {
 
     .ps-empty {
         font-size: 10.5pt;
+    }
+
+    .ps-situation p {
+        font-size: 10pt;
+        padding-left: 10px;
+        border-left: 3px solid #1B7A8A;
     }
 
     .ps-foot {
