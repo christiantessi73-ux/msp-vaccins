@@ -582,6 +582,38 @@ legend {
     font-size: 0.9rem;
 }
 
+/* ============ Étape 3 : garde-fou du bouton « Terminer » ============ */
+.cta-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 1rem;
+    padding: 0.65rem 1.1rem;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: left;
+}
+
+.cta-hint[hidden] {
+    display: none;
+}
+
+.cta-hint i {
+    color: inherit;
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+/* Le bouton reste cliquable - c'est le clic qui fait apparaître l'explication -
+   mais il annonce qu'il n'est pas encore l'étape à franchir. */
+.btn-en-attente {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .privacy-notice {
     text-align: center;
     font-size: 0.8rem;
@@ -671,6 +703,22 @@ legend {
 .privacy-notice a {
     color: var(--primary);
     font-weight: 600;
+}
+
+/* Le soulignement d'un lien s'applique aussi à son icône, et un enfant ne
+   peut pas l'annuler : on le retire du lien entier, la couleur et la flèche
+   suffisent à le signaler. */
+.retour-lien a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+}
+
+@media (hover: hover) {
+    .retour-lien a:hover {
+        text-decoration: underline;
+    }
 }
 
 /* Ce qui reste à renseigner se voit du premier coup d'œil */

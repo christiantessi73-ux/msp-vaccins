@@ -97,6 +97,10 @@
             <div class="cta-buttons">
                 <button class="btn btn-light" id="btn-terminer" onclick="terminer()"><i class="ph ph-check-circle"></i> Terminer</button>
             </div>
+            <p class="cta-hint" id="cta-hint" hidden>
+                <i class="ph ph-warning-circle" aria-hidden="true"></i>
+                Veuillez renseigner le formulaire : votre genre et votre âge sont nécessaires.
+            </p>
         </section>
 
         <p class="privacy-notice">
@@ -301,6 +305,16 @@
         }
 
         /* ===================== Mise à jour ===================== */
+        /* Le profil est complet quand le genre et l'âge sont renseignés :
+           c'est la condition d'existence des recommandations, donc aussi
+           celle du bilan. */
+        function profilComplet() {
+            const ageStr = ageInput.value;
+            return !!getSelectedGenre()
+                && ageStr.trim() !== ""
+                && !isNaN(parseInt(ageStr, 10));
+        }
+
         function getSelectedGenre() {
             const selected = Array.from(genreRadios).find(function (r) { return r.checked; });
             return selected ? selected.value : null;
@@ -400,6 +414,13 @@
 
             // Une modification après coup redonne accès à « Terminer »
             btnTerminer.disabled = false;
+
+            // Tant que le profil est incomplet, le bouton s'annonce comme tel
+            // et le message d'aide s'efface dès que la saisie reprend.
+            const complet = genre && hasAge;
+            btnTerminer.classList.toggle('btn-en-attente', !complet);
+            btnTerminer.setAttribute('aria-disabled', String(!complet));
+            if (complet) ctaHint.hidden = true;
 
             // Photographie de l'état courant, envoyée en un seul bloc à la fin
             statsEtat = {
@@ -597,11 +618,23 @@
            ferment l'onglet sans cliquer - statsFin ne part qu'une fois. */
         const bilanBarre = document.getElementById('bilan-barre');
         const btnTerminer = document.getElementById('btn-terminer');
+        const ctaHint = document.getElementById('cta-hint');
 
         /* « Terminer » affiche le bilan : c'est le même document que celui
            qui s'imprime, présenté à l'écran. Le patient n'a rien à
            télécharger pour le montrer à l'équipe. */
         function terminer() {
+            // Un bilan sans profil ne dit rien : plutôt que de l'ouvrir vide,
+            // on renvoie le patient à l'étape 1 en disant ce qui manque.
+            if (!profilComplet()) {
+                ctaHint.hidden = false;
+                document.getElementById('step-profil')
+                        .scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const manquant = getSelectedGenre() ? ageInput : null;
+                if (manquant && !manquant.disabled) manquant.focus();
+                return;
+            }
+
             statsDebut();
             statsFin();
             btnTerminer.disabled = true;
