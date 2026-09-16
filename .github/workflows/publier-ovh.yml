@@ -37,9 +37,10 @@ jobs:
       - name: Installer lftp
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
-      # Étape de repérage : si l'envoi échoue, le journal montre où le
-      # compte atterrit et si le dossier « www » est bien là.
-      - name: Repérer l'arborescence distante
+      # Le journal de cette étape est la façon la plus simple de voir ce qui
+      # est réellement en ligne, sans installer de client FTP : GitHub →
+      # Actions → dernière exécution → « Lister les fichiers publiés ».
+      - name: Lister les fichiers publiés
         env:
           HOTE: ${{ secrets.OVH_FTP_HOST }}
           UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
@@ -47,7 +48,7 @@ jobs:
         run: |
           lftp -c "set sftp:auto-confirm yes; \
                    open -u \"$UTILISATEUR\",\"$MOTDEPASSE\" sftp://$HOTE; \
-                   pwd; cls -l"
+                   pwd; echo '--- racine du compte ---'; cls -l;                    echo '--- contenu publie (www) ---'; find www/"
 
       - name: Envoyer les fichiers du site
         env:
