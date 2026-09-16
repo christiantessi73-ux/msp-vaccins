@@ -1,0 +1,3 @@
+# Sonde : ce fichier est-il lu par l Apache d OVH ?
+# ErrorDocument ne depend d aucun module.
+ErrorDocument 404 "sonde-htaccess-active"
