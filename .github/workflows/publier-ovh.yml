@@ -59,7 +59,10 @@ jobs:
                    set net:max-retries 3; \
                    set net:timeout 20; \
                    open -u \"$UTILISATEUR\",\"$MOTDEPASSE\" sftp://$HOTE; \
-                   mirror --reverse --delete --verbose \
+                   mirror --reverse --delete --verbose --no-perms \
+                     --exclude-glob .well-known/ \
+                     --exclude-glob cgi-bin/ \
+                     --exclude-glob .ovhconfig \
                      --exclude-glob .git* \
                      --exclude-glob .github/ \
                      --exclude-glob apps-script/ \
