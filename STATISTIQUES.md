@@ -115,9 +115,17 @@ exactement ce qui rend les compteurs anonymes.
 3. *Déployer → Nouveau déploiement → Application web*, exécuter en tant que
    soi-même, accès « Tout le monde ». Copier l'URL `/exec`.
 4. Dans `index.html`, renseigner `const STATS_ENDPOINT = "…/exec";`
-5. Vérifier en lançant `testerInstallation()` depuis l'éditeur Apps Script :
+5. Vérifier que `const STATS_CLE` (dans `index.html`) et `var CLE` (dans
+   `Code.gs`) portent **exactement la même valeur** : sans cela le script
+   refuse tout et les compteurs restent à zéro.
+6. Vérifier en lançant `testerInstallation()` depuis l'éditeur Apps Script :
    elle crée la ligne du mois **et** la feuille `Tableau de bord`.
-6. Partager le classeur en lecture avec les médecins (voir plus haut).
+7. Partager le classeur en lecture avec les médecins (voir plus haut).
+
+> **Changer la clé plus tard** : modifier les deux fichiers, publier le site,
+> *puis* redéployer le script (*Gérer les déploiements → Modifier → Nouvelle
+> version*). Dans cet ordre, aucun comptage n'est perdu ; dans l'autre, le
+> script refuse les visiteurs tant que le site n'est pas à jour.
 
 Si le tableau de bord doit être remis à neuf, relancer `installerTableauDeBord()`
 depuis l'éditeur : la feuille est recréée, les compteurs ne bougent pas.
@@ -127,10 +135,16 @@ s'affichent seulement dans la console du navigateur.
 
 ## Limites connues
 
-L'URL du webhook est visible dans le code source de la page. Quelqu'un qui la
-trouve peut gonfler les compteurs. Le risque est faible et sans gravité pour un
-indicateur d'activité, mais si un écart suspect apparaît, comparer avec la
-fréquentation du comptoir.
+L'URL du webhook et la clé partagée sont toutes deux visibles dans le code
+source de la page — elles doivent l'être, c'est le navigateur du visiteur qui
+appelle le script. La clé écarte les robots et les appels au hasard, pas
+quelqu'un qui lit la page. C'est pourquoi un second garde-fou existe : le
+script ignore tout ce qui dépasse `PLAFOND_PAR_HEURE` appels dans l'heure
+(200 par défaut, très au-dessus de la fréquentation réelle du comptoir). Le
+pire scénario reste donc des compteurs gonflés, jamais une fuite : le script
+ne sait qu'incrémenter, il n'a aucune fonction de lecture (`doGet` n'existe
+pas). Si un écart suspect apparaît, comparer avec la fréquentation du
+comptoir.
 
 L'événement de fin est envoyé quand l'onglet se ferme ou passe en arrière-plan.
 Un navigateur tué brutalement peut le perdre : `Questionnaires commencés` est

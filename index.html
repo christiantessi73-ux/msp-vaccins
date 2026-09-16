@@ -511,6 +511,13 @@
            sont seulement affichés dans la console. */
         const STATS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxm1ilbzrNRDX38Vr50M_Df5jQLKExNy9zT4E0aw6nYRhwF2DfBn-HrqziBDys-MdMd/exec";
 
+        /* Clé partagée avec le script (var CLE dans apps-script/Code.gs) : les
+           deux doivent rester identiques. Elle écarte les robots et les appels
+           au hasard sur une adresse forcément publique. Elle n'est pas un
+           secret - elle est dans cette page - et n'a rien à protéger : le
+           script ne sait qu'incrémenter des compteurs anonymes. */
+        const STATS_CLE = "msp-84feb9a16b719652c1d0286d";
+
         let statsDebutEnvoye = false;
         let statsFinEnvoye = false;
         let statsPdfEnvoye = false;
@@ -521,6 +528,7 @@
                 console.log("📊 Indicateur (envoi désactivé) :", payload);
                 return;
             }
+            payload.k = STATS_CLE;
             const corps = JSON.stringify(payload);
             // sendBeacon survit à la fermeture de l'onglet, contrairement à fetch
             try {

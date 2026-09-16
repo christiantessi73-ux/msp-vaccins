@@ -20,6 +20,28 @@
  * déploiements → Modifier → Nouvelle version), sinon l'URL sert l'ancien code.
  */
 
+/* ── Protection des écritures ────────────────────────────────────────────
+ * L'adresse /exec est forcément publique : c'est le navigateur de chaque
+ * visiteur qui l'appelle. Sans garde-fou, n'importe qui pourrait envoyer de
+ * faux comptages et fausser le rapport d'activité.
+ *
+ * Deux barrières, volontairement modestes :
+ *
+ *  1. Une clé partagée, à recopier à l'identique dans index.html
+ *     (const STATS_CLE). Elle écarte les robots et les appels au hasard.
+ *     Elle ne cache rien à qui lit le code de la page : c'est un verrou de
+ *     porte de jardin, pas un coffre - et il n'y a rien à voler ici, le
+ *     script ne sait que compter.
+ *
+ *  2. Un plafond horaire. Même en connaissant la clé, on ne peut pas gonfler
+ *     les compteurs plus vite que le comptoir ne reçoit de patients.
+ *
+ * Après modification de la clé : redéployer (Nouvelle version), sinon l'URL
+ * continue de servir l'ancienne.
+ */
+var CLE = 'msp-84feb9a16b719652c1d0286d';
+var PLAFOND_PAR_HEURE = 200;
+
 var FEUILLE = 'Indicateurs';
 
 var COLONNES = [
@@ -42,6 +64,18 @@ var TRANCHES = {
 };
 
 function doPost(e) {
+  // Lecture et contrôles d'abord : un appel douteux ne doit pas même
+  // immobiliser le verrou que se partagent les vrais visiteurs.
+  var data;
+  try {
+    data = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return ContentService.createTextOutput('illisible');
+  }
+
+  if (data.k !== CLE) return ContentService.createTextOutput('refuse');
+  if (plafondAtteint()) return ContentService.createTextOutput('plafond');
+
   var verrou = LockService.getScriptLock();
   // Deux patients peuvent finir en même temps : sans verrou, un incrément est perdu
   try {
@@ -51,7 +85,6 @@ function doPost(e) {
   }
 
   try {
-    var data = JSON.parse(e.postData.contents);
     var feuille = obtenirFeuille();
     var ligne = obtenirLigneDuMois(feuille);
 
@@ -78,6 +111,22 @@ function doPost(e) {
   }
 
   return ContentService.createTextOutput('ok');
+}
+
+/**
+ * Compte les appels de l'heure en cours et dit si le plafond est franchi.
+ *
+ * Le compteur vit dans le cache du script, pas dans la feuille : il expire
+ * tout seul et ne laisse aucune trace dans le classeur. Un appel perdu de
+ * temps en temps (le cache n'est pas transactionnel) est sans conséquence
+ * pour un garde-fou.
+ */
+function plafondAtteint() {
+  var cache = CacheService.getScriptCache();
+  var heure = Utilities.formatDate(new Date(), 'Europe/Paris', 'yyyy-MM-dd-HH');
+  var compte = Number(cache.get(heure) || 0) + 1;
+  cache.put(heure, String(compte), 3900);  // un peu plus d'une heure
+  return compte > PLAFOND_PAR_HEURE;
 }
 
 /** La feuille « Indicateurs », créée avec ses en-têtes au premier appel. */
