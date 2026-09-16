@@ -39,8 +39,43 @@ body {
 /* ========================= En-tête ========================= */
 header {
     text-align: center;
-    padding-top: 1.5rem;
     margin-bottom: 2rem;
+}
+
+/* ============ Bandeau d'accueil ============
+   Le patient arrive ici en scannant un QR code collé au comptoir : il doit
+   reconnaître immédiatement chez qui il est. C'est le chaînon entre
+   l'affiche, l'adresse msp-vaccins.fr et la maison de santé.
+   Placé dans <header>, il disparaît avec lui au bilan et à l'impression. */
+.bandeau-msp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    max-width: 1180px;
+    margin: 0 auto 1.75rem;
+    padding: 0.8rem 1.25rem;
+    background: var(--primary);
+    color: #fff;
+    border-radius: var(--radius);
+    /* Jamais sous le texte courant : cette ligne est faite pour être lue,
+       debout au comptoir, parfois par des patients âgés. */
+    font-size: 1.05rem;
+    line-height: 1.4;
+}
+
+/* Sans ça, la règle générale sur i colorerait l'icône en turquoise,
+   donc invisible sur le bandeau. */
+.bandeau-msp i {
+    color: inherit;
+    font-size: 1.45rem;
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+/* Le nom de la maison de santé ne se coupe pas en fin de ligne */
+.bandeau-msp strong {
+    white-space: nowrap;
 }
 
 h1 {
@@ -578,6 +613,86 @@ legend {
     }
 }
 
+/* ============ Pages de texte (mentions légales) ============ */
+.container-texte {
+    max-width: 760px;
+}
+
+.container-texte .section-card {
+    margin-bottom: 1.25rem;
+}
+
+.container-texte h3 {
+    margin: 1.5rem 0 0.4rem;
+    font-size: 1rem;
+    color: var(--primary);
+}
+
+.container-texte p {
+    margin-bottom: 0.9rem;
+}
+
+.container-texte p:last-child {
+    margin-bottom: 0;
+}
+
+.liste-simple {
+    margin: 0 0 0.9rem 1.2rem;
+}
+
+.liste-simple li {
+    margin-bottom: 0.3rem;
+}
+
+/* Fiche d'identité de l'éditeur : deux colonnes qui passent à une seule
+   sur téléphone, sans tableau. */
+.fiche {
+    display: grid;
+    grid-template-columns: 11rem 1fr;
+    gap: 0.5rem 1rem;
+}
+
+.fiche dt {
+    font-weight: 700;
+    color: var(--text-gray);
+    font-size: 0.9rem;
+}
+
+.note-secondaire {
+    font-size: 0.88rem;
+    color: var(--text-gray);
+}
+
+.retour-lien {
+    margin-bottom: 1.25rem;
+}
+
+.retour-lien a,
+.privacy-notice a {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Ce qui reste à renseigner se voit du premier coup d'œil */
+.a-completer {
+    background: #fff3cd;
+    color: #856404;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+    .fiche {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+    }
+
+    .fiche dd {
+        margin-bottom: 0.6rem;
+    }
+}
+
 /* ========================= Divers ========================= */
 i {
     font-size: 1.2rem;
@@ -597,6 +712,13 @@ i {
 }
 
 @media (max-width: 600px) {
+    .bandeau-msp {
+        gap: 8px;
+        padding: 0.75rem 0.9rem;
+        font-size: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
     .section-card {
         padding: 1.5rem;
     }
@@ -802,8 +924,8 @@ i {
     }
 
     /* L'interface disparaît entièrement, le compte rendu prend sa place */
-    body > header,
-    body > .container,
+    body:not(.page-simple) > header,
+    body:not(.page-simple) > .container,
     body > .summary-bar,
     body > .bilan-barre {
         display: none !important;
