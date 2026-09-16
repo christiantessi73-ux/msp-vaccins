@@ -1,3 +1,27 @@
-# Sonde : ce fichier est-il lu par l Apache d OVH ?
-# ErrorDocument ne depend d aucun module.
-ErrorDocument 404 "sonde-htaccess-active"
+# Configuration Apache de l'hébergement OVH.
+#
+# Vérifié actif : une sonde ErrorDocument a bien pris effet. Les blocs
+# restent enfermés dans des IfModule - sur un mutualisé, un module absent
+# transformerait ce fichier en erreur 500 sur tout le site.
+
+# ---- Tout le monde en HTTPS ----
+# OVH ne redirige pas de lui-même, contrairement à GitHub Pages : le site
+# répondait en clair à qui tapait l'adresse sans « https ». Les deux
+# certificats étant en place et vérifiés, la redirection est sans danger.
+# La double condition évite la boucle : on ne redirige que si aucun des
+# deux indicateurs de TLS n'est présent.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# ---- En-têtes ----
+<IfModule mod_headers.c>
+    # On arrive ici par le QR code du comptoir, pas par une recherche.
+    Header set X-Robots-Tag "noindex"
+    Header set X-Content-Type-Options "nosniff"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set X-Frame-Options "SAMEORIGIN"
+</IfModule>
