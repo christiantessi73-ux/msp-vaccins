@@ -1,7 +1,13 @@
 # Publie le site sur l'hébergement OVH à chaque commit sur main.
 #
-# OVH mutualisé se met à jour en FTP, pas en git push : cette action fait la
-# traduction, pour qu'un commit reste le seul geste de mise en ligne.
+# OVH mutualisé se met à jour par transfert de fichiers, pas en git push :
+# cette action fait la traduction, pour qu'un commit reste le seul geste de
+# mise en ligne.
+#
+# En SFTP, pas en FTPS : le serveur d'OVH répond « 500 This security scheme
+# is not implemented » à une tentative de FTPS, mais son port 22 répond en
+# OpenSSH. Le FTP simple aurait marché, au prix du mot de passe en clair sur
+# le réseau - ce qui ne se justifie pas quand SFTP est disponible.
 #
 # Trois secrets à créer dans GitHub (Settings → Secrets and variables →
 # Actions). Ils ne doivent jamais apparaître ailleurs que là :
@@ -9,10 +15,10 @@
 #   OVH_FTP_USER      l'identifiant FTP (espace client OVH → FTP-SSH)
 #   OVH_FTP_PASSWORD  le mot de passe associé
 #
-# La liste « exclude » est le vrai intérêt du procédé : le dépôt garde tout,
-# le serveur public ne reçoit que le site. Le script Apps Script, la notice
-# des statistiques et l'affiche cessent d'être téléchargeables par n'importe
-# qui, sans avoir à réorganiser le dépôt.
+# La liste d'exclusions est le vrai intérêt du procédé : le dépôt garde
+# tout, le serveur public ne reçoit que le site. Le script Apps Script, la
+# notice des statistiques et l'affiche cessent d'être téléchargeables par
+# n'importe qui, sans avoir à réorganiser le dépôt.
 
 name: Publier sur OVH
 
@@ -28,24 +34,41 @@ jobs:
       - name: Récupérer le dépôt
         uses: actions/checkout@v4
 
+      - name: Installer lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      # Étape de repérage : si l'envoi échoue, le journal montre où le
+      # compte atterrit et si le dossier « www » est bien là.
+      - name: Repérer l'arborescence distante
+        env:
+          HOTE: ${{ secrets.OVH_FTP_HOST }}
+          UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
+          MOTDEPASSE: ${{ secrets.OVH_FTP_PASSWORD }}
+        run: |
+          lftp -c "set sftp:auto-confirm yes; \
+                   open -u \"$UTILISATEUR\",\"$MOTDEPASSE\" sftp://$HOTE; \
+                   pwd; cls -l"
+
       - name: Envoyer les fichiers du site
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.OVH_FTP_HOST }}
-          username: ${{ secrets.OVH_FTP_USER }}
-          password: ${{ secrets.OVH_FTP_PASSWORD }}
-          protocol: ftps
-          server-dir: www/
-          exclude: |
-            **/.git*
-            **/.git*/**
-            .github/**
-            apps-script/**
-            dist/**
-            STATISTIQUES.md
-            affiche-msp-vaccins.*
-            qr-msp-vaccins.png
-            CNAME
-            _headers
-            *.pdf
-            *.jpg
+        env:
+          HOTE: ${{ secrets.OVH_FTP_HOST }}
+          UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
+          MOTDEPASSE: ${{ secrets.OVH_FTP_PASSWORD }}
+        run: |
+          lftp -c "set sftp:auto-confirm yes; \
+                   set net:max-retries 3; \
+                   set net:timeout 20; \
+                   open -u \"$UTILISATEUR\",\"$MOTDEPASSE\" sftp://$HOTE; \
+                   mirror --reverse --delete --verbose \
+                     --exclude-glob .git* \
+                     --exclude-glob .github/ \
+                     --exclude-glob apps-script/ \
+                     --exclude-glob dist/ \
+                     --exclude-glob STATISTIQUES.md \
+                     --exclude-glob affiche-msp-vaccins.* \
+                     --exclude-glob qr-msp-vaccins.png \
+                     --exclude-glob CNAME \
+                     --exclude-glob _headers \
+                     --exclude-glob *.pdf \
+                     --exclude-glob *.jpg \
+                     ./ www/"
