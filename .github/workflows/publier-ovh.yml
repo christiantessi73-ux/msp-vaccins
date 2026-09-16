@@ -1,0 +1,51 @@
+# Publie le site sur l'hébergement OVH à chaque commit sur main.
+#
+# OVH mutualisé se met à jour en FTP, pas en git push : cette action fait la
+# traduction, pour qu'un commit reste le seul geste de mise en ligne.
+#
+# Trois secrets à créer dans GitHub (Settings → Secrets and variables →
+# Actions). Ils ne doivent jamais apparaître ailleurs que là :
+#   OVH_FTP_HOST      ftp.cluster129.hosting.ovh.net
+#   OVH_FTP_USER      l'identifiant FTP (espace client OVH → FTP-SSH)
+#   OVH_FTP_PASSWORD  le mot de passe associé
+#
+# La liste « exclude » est le vrai intérêt du procédé : le dépôt garde tout,
+# le serveur public ne reçoit que le site. Le script Apps Script, la notice
+# des statistiques et l'affiche cessent d'être téléchargeables par n'importe
+# qui, sans avoir à réorganiser le dépôt.
+
+name: Publier sur OVH
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Envoyer les fichiers du site
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.OVH_FTP_HOST }}
+          username: ${{ secrets.OVH_FTP_USER }}
+          password: ${{ secrets.OVH_FTP_PASSWORD }}
+          protocol: ftps
+          server-dir: www/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            apps-script/**
+            dist/**
+            STATISTIQUES.md
+            affiche-msp-vaccins.*
+            qr-msp-vaccins.png
+            CNAME
+            _headers
+            *.pdf
+            *.jpg
