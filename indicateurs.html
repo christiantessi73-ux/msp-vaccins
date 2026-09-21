@@ -49,8 +49,14 @@
             align-items: center;
             margin-top: 1rem;
         }
-        .camembert { flex: 0 0 auto; }
-        .camembert svg { display: block; max-width: 100%; height: auto; }
+        .camembert { flex: 0 0 auto; max-width: 100%; }
+        .camembert svg { display: block; width: 100%; height: auto; }
+
+        /* En infographie, les etiquettes du dessin disent deja les noms et
+           les effectifs : la liste ferait doublon. */
+        .camembert-bloc.infographie { display: block; }
+        .camembert-bloc.infographie .camembert { max-width: 100%; }
+        .camembert-bloc.infographie .camembert-parts { display: none; }
         .camembert-parts { flex: 1 1 14rem; display: grid; gap: 0.5rem; min-width: 12rem; }
         .camembert-part {
             display: grid;
@@ -253,7 +259,7 @@
                 <p style="color: var(--text-gray); font-size: 0.92rem;">
                     Répartition des questionnaires complétés par tranche d'âge.
                 </p>
-                <div class="camembert-bloc">
+                <div class="camembert-bloc" id="bloc-camembert">
                     <div class="camembert" id="camembert-age"></div>
                     <div class="camembert-parts" id="parts-age"></div>
                 </div>
@@ -410,58 +416,83 @@
             return (noms[i] || m) + ' ' + p[0];
         }
 
-        /* Un secteur de camembert, en SVG.
-           Trace a la main plutot que charge : une bibliotheque de graphiques
-           pour quatre parts couterait plus en poids de page qu'elle
-           n'apporte, et il n'y a pas de axes a gerer ici. */
-        function secteur(cx, cy, r, depuis, jusqu) {
-            const point = function (angle) {
-                const a = (angle - 90) * Math.PI / 180;
-                return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
-            };
-            // Un secteur de 360 degres ne peut pas s'ecrire en arc : les deux
-            // extremites se confondent et le chemin disparait. On dessine
-            // alors un disque.
-            if (jusqu - depuis >= 359.999) {
-                return 'M ' + cx + ' ' + (cy - r)
-                     + ' A ' + r + ' ' + r + ' 0 1 1 ' + (cx - 0.01) + ' ' + (cy - r) + ' Z';
-            }
-            const d = point(depuis), j = point(jusqu);
-            const grand = (jusqu - depuis) > 180 ? 1 : 0;
-            return 'M ' + cx + ' ' + cy
-                 + ' L ' + d[0].toFixed(2) + ' ' + d[1].toFixed(2)
-                 + ' A ' + r + ' ' + r + ' 0 ' + grand + ' 1 '
-                 + j[0].toFixed(2) + ' ' + j[1].toFixed(2) + ' Z';
-        }
+        /* Le camembert, dessiné en anneau.
+
+           Trois écarts avec un secteur ordinaire, demandés par la MSP :
+           un disque clair au centre, un intervalle entre les parts, et un
+           rayon qui varie avec la valeur.
+
+           Ce dernier point mérite d'être su : faire varier le rayon en plus
+           de l'angle encode deux fois la même valeur, et comme l'aire croît
+           au carré, l'écart entre deux parts paraît plus grand qu'il n'est.
+           La variation est donc tenue courte, et le pourcentage inscrit dans
+           la part porte la vérité.
+
+           Tracé à la main : une bibliothèque de graphiques pour quatre parts
+           coûterait plus en poids de page qu'elle n'apporte. */
 
         const COULEURS_AGE = ['#0E8FA8', '#4F72B7', '#EB6834', '#7A5195'];
+        const ENCRE_ANNEAU = '#14303D';
 
-        /* Les étiquettes sortent du disque et se relient par une flèche.
-           Un pourcentage posé dans le secteur ne tient pas quand celui-ci est
-           étroit — et c'est justement celui qu'on cherche à lire. Dehors,
-           toutes les parts sont lisibles à la même taille. */
+        function pointPolaire(cx, cy, r, angle) {
+            const a = (angle - 90) * Math.PI / 180;
+            return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+        }
+
+        /* Une part d'anneau : arc extérieur, segment, arc intérieur, segment.
+           L'intervalle entre les parts évite au passage le cas qu'un arc ne
+           sait pas dessiner — une part unique à 360 degrés, dont les deux
+           extrémités se confondraient. */
+        function partAnneau(cx, cy, rInt, rExt, depuis, jusqu) {
+            const grand = (jusqu - depuis) > 180 ? 1 : 0;
+            const n = function (p) { return p[0].toFixed(2) + ' ' + p[1].toFixed(2); };
+            const a = pointPolaire(cx, cy, rExt, depuis);
+            const b = pointPolaire(cx, cy, rExt, jusqu);
+            const c = pointPolaire(cx, cy, rInt, jusqu);
+            const d = pointPolaire(cx, cy, rInt, depuis);
+            return 'M ' + n(a)
+                 + ' A ' + rExt + ' ' + rExt + ' 0 ' + grand + ' 1 ' + n(b)
+                 + ' L ' + n(c)
+                 + ' A ' + rInt + ' ' + rInt + ' 0 ' + grand + ' 0 ' + n(d) + ' Z';
+        }
+
+        /* Deux parts voisines produisent deux étiquettes à la même hauteur,
+           qui se chevauchent. On les écarte de proche en proche, puis on les
+           ramène dans le cadre. */
         function poserEtiquettes(lignes, hauteur, ecart) {
-            // Deux parts voisines produisent deux étiquettes à la même
-            // hauteur, qui se chevauchent. On les écarte de proche en proche,
-            // puis on les ramène dans le cadre.
             lignes.sort(function (a, b) { return a.y - b.y; });
             for (let i = 1; i < lignes.length; i++) {
                 if (lignes[i].y - lignes[i - 1].y < ecart) {
                     lignes[i].y = lignes[i - 1].y + ecart;
                 }
             }
-            const debord = lignes.length ? lignes[lignes.length - 1].y - (hauteur - 12) : 0;
+            const debord = lignes.length ? lignes[lignes.length - 1].y - (hauteur - 30) : 0;
             if (debord > 0) lignes.forEach(function (l) { l.y -= debord; });
-            lignes.forEach(function (l) { l.y = Math.max(14, l.y); });
+            lignes.forEach(function (l) { l.y = Math.max(30, l.y); });
             return lignes;
         }
 
+        let donneesAge = [];
+
         function camembert(entrees) {
+            donneesAge = entrees;
+            dessinerCamembert();
+        }
+
+        /* Deux rendus : l'infographie complète quand la place le permet, et
+           un simple anneau sinon. Réduire l'infographie à la largeur d'un
+           téléphone rendrait ses étiquettes illisibles ; la liste HTML à
+           côté dit alors la même chose, et elle, elle se replie. */
+        const LARGE = window.matchMedia('(min-width: 800px)');
+
+        function dessinerCamembert() {
+            const entrees = donneesAge;
             const total = entrees.reduce(function (s, e) { return s + e[1]; }, 0);
             document.getElementById('age-vide').hidden = (total > 0);
 
             const svg = document.getElementById('camembert-age');
             const parts = document.getElementById('parts-age');
+            const bloc = document.getElementById('bloc-camembert');
 
             if (total === 0) {
                 svg.innerHTML = '';
@@ -469,67 +500,116 @@
                 return;
             }
 
-            const L = 330, H = 230, CX = 165, CY = 112, R = 84;
+            const infographie = LARGE.matches;
+            bloc.classList.toggle('infographie', infographie);
+
+            const L = infographie ? 820 : 320;
+            const H = infographie ? 440 : 320;
+            const CX = L / 2, CY = H / 2;
+
+            // Rayons : le disque clair, l'anneau d'encre, puis les parts.
+            const ECHELLE = infographie ? 1 : 0.74;
+            const rDisque = 46 * ECHELLE;
+            const rAnneau = 72 * ECHELLE;
+            const rInt = 82 * ECHELLE;
+            const rMin = 132 * ECHELLE;
+            const rMax = 190 * ECHELLE;
+
+            const ECART = 2;   // degrés entre deux parts
+            const maxV = entrees.reduce(function (m, e) { return Math.max(m, e[1]); }, 0);
+
             let angle = 0;
-            let chemins = '';
+            let secteurs = '';
+            let dedans = '';
             const gauche = [], droite = [];
 
             entrees.forEach(function (e, i) {
                 if (e[1] <= 0) return;
-                const fin = angle + 360 * e[1] / total;
+
+                const large = 360 * e[1] / total;
+                const a0 = angle + ECART / 2;
+                const a1 = angle + large - ECART / 2;
                 const couleur = COULEURS_AGE[i % COULEURS_AGE.length];
+                const rExt = rMin + (rMax - rMin) * (maxV > 0 ? e[1] / maxV : 1);
 
-                chemins += '<path d="' + secteur(CX, CY, R, angle, fin) + '" fill="'
-                         + couleur + '" stroke="#fff" stroke-width="2">'
-                         + '<title>' + echapper(e[0]) + ' : ' + e[1] + '</title></path>';
+                secteurs += '<path d="' + partAnneau(CX, CY, rInt, rExt, a0, a1)
+                          + '" fill="' + couleur + '"><title>' + echapper(e[0])
+                          + ' : ' + e[1] + '</title></path>';
 
-                const milieu = (angle + fin) / 2;
-                const rad = (milieu - 90) * Math.PI / 180;
-                const aDroite = Math.cos(rad) >= 0;
-                (aDroite ? droite : gauche).push({
-                    y: CY + R * 1.06 * Math.sin(rad),
-                    ancreX: CX + R * Math.cos(rad),
-                    ancreY: CY + R * Math.sin(rad),
-                    coudeX: CX + R * 1.18 * Math.cos(rad),
-                    coudeY: CY + R * 1.18 * Math.sin(rad),
-                    aDroite: aDroite,
-                    couleur: couleur,
-                    texte: pourcent(e[1], total)
-                });
-                angle = fin;
+                const milieu = (a0 + a1) / 2;
+
+                /* Le pourcentage ne tient dans la part que si elle est assez
+                   ouverte. En dessous, il rejoint l'étiquette — une valeur
+                   qui déborde de sa part est pire que pas de valeur. */
+                const tient = large >= 28;
+                if (tient) {
+                    const t = pointPolaire(CX, CY, (rInt + rExt) / 2, milieu);
+                    dedans += '<text x="' + t[0].toFixed(1) + '" y="' + (t[1] + 7).toFixed(1)
+                            + '" text-anchor="middle" font-size="' + (infographie ? 22 : 16)
+                            + '" font-weight="700" fill="#fff">'
+                            + pourcent(e[1], total) + '</text>';
+                }
+
+                if (infographie) {
+                    const rad = (milieu - 90) * Math.PI / 180;
+                    const aDroite = Math.cos(rad) >= 0;
+                    const pastille = pointPolaire(CX, CY, rExt * 0.82, milieu);
+                    const coude = pointPolaire(CX, CY, rExt + 26, milieu);
+                    (aDroite ? droite : gauche).push({
+                        y: coude[1],
+                        px: pastille[0], py: pastille[1],
+                        cx: coude[0],
+                        aDroite: aDroite,
+                        couleur: couleur,
+                        titre: e[0],
+                        sous: effectif(e[1]) + (e[1] > 1 ? ' questionnaires' : ' questionnaire')
+                              + (tient ? '' : ' · ' + pourcent(e[1], total))
+                    });
+                }
+                angle += large;
             });
 
             let reperes = '';
             [gauche, droite].forEach(function (cote) {
-                poserEtiquettes(cote, H, 18).forEach(function (l) {
-                    const bout = l.aDroite ? L - 44 : 44;
-                    // Le trait part de l'étiquette et finit sur la part : la
-                    // flèche pointe ainsi vers le secteur, pas vers le texte.
-                    reperes += '<polyline points="' + bout + ',' + l.y.toFixed(1)
-                            + ' ' + l.coudeX.toFixed(1) + ',' + l.y.toFixed(1)
-                            + ' ' + l.ancreX.toFixed(1) + ',' + l.ancreY.toFixed(1)
-                            + '" fill="none" stroke="' + l.couleur
-                            + '" stroke-width="1.5" marker-end="url(#pointe)"></polyline>'
-                            + '<text x="' + (l.aDroite ? bout + 6 : bout - 6) + '" y="'
-                            + (l.y + 4).toFixed(1) + '" text-anchor="'
+                poserEtiquettes(cote, H, 82).forEach(function (l) {
+                    const bout = l.aDroite ? L - 208 : 208;
+                    reperes += '<polyline points="' + l.px.toFixed(1) + ',' + l.py.toFixed(1)
+                            + ' ' + l.cx.toFixed(1) + ',' + l.y.toFixed(1)
+                            + ' ' + bout + ',' + l.y.toFixed(1)
+                            + '" fill="none" stroke="' + ENCRE_ANNEAU
+                            + '" stroke-width="1.5"></polyline>'
+                            + '<circle cx="' + l.px.toFixed(1) + '" cy="' + l.py.toFixed(1)
+                            + '" r="6" fill="' + ENCRE_ANNEAU + '"></circle>'
+                            + '<text x="' + (l.aDroite ? bout + 14 : bout - 14) + '" y="'
+                            + (l.y - 2).toFixed(1) + '" text-anchor="'
                             + (l.aDroite ? 'start' : 'end')
-                            + '" font-size="13" font-weight="700" fill="'
-                            + l.couleur + '">' + l.texte + '</text>';
+                            + '" font-size="17" font-weight="700" fill="' + l.couleur
+                            + '">' + echapper(l.titre) + '</text>'
+                            + '<text x="' + (l.aDroite ? bout + 14 : bout - 14) + '" y="'
+                            + (l.y + 19).toFixed(1) + '" text-anchor="'
+                            + (l.aDroite ? 'start' : 'end')
+                            + '" font-size="14" fill="#666666">' + l.sous + '</text>';
                 });
             });
 
-            svg.innerHTML = '<svg viewBox="0 0 ' + L + ' ' + H + '" width="' + L
-                          + '" height="' + H + '" role="img" aria-label="'
-                          + 'Répartition des questionnaires complétés par tranche d\'âge">'
-                          + '<defs><marker id="pointe" viewBox="0 0 8 8" refX="7" refY="4"'
-                          + ' markerWidth="5" markerHeight="5" orient="auto">'
-                          + '<path d="M 0 0 L 8 4 L 0 8 z" fill="context-stroke"></path>'
-                          + '</marker></defs>'
-                          + chemins + reperes + '</svg>';
+            /* Le centre porte le total : un disque vide invite à se demander
+               ce qui manque. */
+            const coeur = '<circle cx="' + CX + '" cy="' + CY + '" r="' + rAnneau
+                        + '" fill="' + ENCRE_ANNEAU + '"></circle>'
+                        + '<circle cx="' + CX + '" cy="' + CY + '" r="' + rDisque
+                        + '" fill="#F2F6F7"></circle>'
+                        + '<text x="' + CX + '" y="' + (CY - 2) + '" text-anchor="middle"'
+                        + ' font-size="' + (infographie ? 26 : 20) + '" font-weight="700"'
+                        + ' fill="' + ENCRE_ANNEAU + '">' + nombre(total) + '</text>'
+                        + '<text x="' + CX + '" y="' + (CY + 16) + '" text-anchor="middle"'
+                        + ' font-size="' + (infographie ? 11 : 9) + '" fill="#4A6470">'
+                        + (total > 1 ? 'questionnaires' : 'questionnaire') + '</text>';
 
-            /* Le chiffre est ecrit a cote, jamais dans la part : une part
-               etroite ne peut pas porter son etiquette, et c'est justement
-               celle qu'on cherche a lire. */
+            svg.innerHTML = '<svg viewBox="0 0 ' + L + ' ' + H + '" role="img"'
+                          + ' aria-label="Répartition des questionnaires complétés'
+                          + ' par tranche d\'âge">'
+                          + secteurs + coeur + dedans + reperes + '</svg>';
+
             parts.innerHTML = entrees.map(function (e, i) {
                 return '<div class="camembert-part">'
                      + '<span class="pastille age' + (i % 4) + '"></span>'
@@ -539,6 +619,13 @@
                      + '</div>';
             }).join('');
         }
+
+        // Le rendu change avec la largeur : on redessine plutôt que de
+        // laisser une infographie se tasser sous la largeur d'un téléphone.
+        LARGE.addEventListener('change', function () {
+            if (donneesAge.length) dessinerCamembert();
+        });
+
 
         function barres(cible, entrees, classe) {
             const max = entrees.reduce(function (m, e) { return Math.max(m, e[1]); }, 0);
