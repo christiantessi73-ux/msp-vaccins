@@ -125,7 +125,15 @@ Moyenne de vaccins par questionnaire = `Total vaccins recommandés` ÷
 `Questionnaires complétés`.
 
 Part des vaccins déjà faits = `Vaccins déjà faits` ÷ `Total vaccins
-recommandés`.
+recommandés`. Les tableaux de bord affichent aussi la part à vérifier et le
+nombre restant à faire : les trois s'additionnent pour retomber sur le total
+recommandé, ce qui rend chacune vérifiable. Un pourcentage seul se croit sur
+parole.
+
+« Vaccins restant à faire » est le besoin que le questionnaire met en
+évidence, et c'est le chiffre qui ouvre un rapport de prévention. « À
+vérifier » n'est pas un défaut de mesure mais un résultat : il dit la part de
+patients qui ignorent leur propre statut vaccinal.
 
 > **Ne jamais appeler ce chiffre une « couverture vaccinale ».** En santé
 > publique, ce terme désigne la proportion d'une population vaccinée. Ici il

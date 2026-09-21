@@ -738,7 +738,7 @@
             const mois = Object.keys(etat.indicateurs || {}).sort();
 
             // Totaux depuis le début
-            const t = { completes: 0, recommandes: 0, faits: 0 };
+            const t = { completes: 0, recommandes: 0, faits: 0, verif: 0, restants: 0 };
             const parTranche = { '11-24': 0, '25-44': 0, '45-64': 0, '65+': 0 };
 
             mois.forEach(function (m) {
@@ -746,6 +746,8 @@
                 t.completes   += Number(l.completes) || 0;
                 t.recommandes += Number(l.recommandes) || 0;
                 t.faits       += Number(l.faits) || 0;
+                t.verif       += Number(l.verif) || 0;
+                t.restants    += Number(l.restants) || 0;
                 TRANCHES.forEach(function (tr) {
                     parTranche[tr[0]] += Number(l[tr[0]]) || 0;
                 });
@@ -768,6 +770,13 @@
                 [decimal(t.recommandes, t.completes), 'Vaccins recommandés par questionnaire'],
                 [pourcent(t.faits, t.recommandes),
                  'Vaccins déjà faits, d\'après les patients'],
+                /* Les trois parts se suivent, et elles s'additionnent :
+                   déjà faits + à vérifier + restant à faire = total
+                   recommandé. Les voir côte à côte rend chacune vérifiable,
+                   là où un pourcentage isolé se croit sur parole. */
+                [pourcent(t.verif, t.recommandes),
+                 'Vaccins à vérifier avec le carnet'],
+                [nombre(t.restants), 'Vaccins restant à faire'],
                 [nombre(totalDoses), 'Doses administrées à la MSP']
             ];
 

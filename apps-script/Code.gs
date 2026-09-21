@@ -341,6 +341,8 @@ function installerTableauDeBord() {
     ['Questionnaires complétés',            "=SUM('" + src + "'!B2:B)",              '0'],
     ['Moyenne de vaccins par questionnaire', "=IFERROR(SUM('" + src + "'!G2:G)/B5,\"\")", '0.0'],
     ["Vaccins déjà faits, d'après les patients", "=IFERROR(SUM('" + src + "'!H2:H)/SUM('" + src + "'!G2:G),\"\")", '0.0%'],
+    ['Vaccins à vérifier avec le carnet',   "=IFERROR(SUM('" + src + "'!I2:I)/SUM('" + src + "'!G2:G),\"\")", '0.0%'],
+    ['Vaccins restant à faire',             "=SUM('" + src + "'!J2:J)",              '0'],
     ['Doses administrées à la MSP',          "=IFERROR(SUM('" + ACTES + "'!Q2:Q),0)",  '0']
   ];
 
