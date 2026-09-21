@@ -122,6 +122,50 @@ function ventiler(array &$ligne, string $champ, mixed $part, int $total): void
     }
 }
 
+/**
+ * Nettoie un état reçu de l'extérieur avant de l'écrire.
+ *
+ * Un import remplace tout : c'est la seule opération du fichier qui puisse
+ * détruire des compteurs. Elle ne recopie donc jamais ce qu'on lui donne —
+ * elle reconstruit un document à partir des seuls champs connus, en
+ * n'acceptant que des mois bien formés et des entiers positifs. Ce qui ne
+ * rentre pas dans ce moule est écarté sans bruit.
+ */
+function assainir(array $recu): array
+{
+    $propre = ['version' => 1, 'indicateurs' => [], 'actes' => []];
+    $modele = ligneIndicateurs();
+
+    foreach (($recu['indicateurs'] ?? []) as $mois => $ligne) {
+        if (!is_string($mois) || !preg_match('/^\d{4}-\d{2}$/', $mois) || !is_array($ligne)) {
+            continue;
+        }
+        $propre['indicateurs'][$mois] = $modele;
+        foreach ($modele as $champ => $_) {
+            $v = (int) ($ligne[$champ] ?? 0);
+            $propre['indicateurs'][$mois][$champ] = max(0, $v);
+        }
+    }
+
+    foreach (($recu['actes'] ?? []) as $mois => $doses) {
+        if (!is_string($mois) || !preg_match('/^\d{4}-\d{2}$/', $mois) || !is_array($doses)) {
+            continue;
+        }
+        $propre['actes'][$mois] = [];
+        foreach (VACCINS as $nom) {
+            $v = max(0, (int) ($doses[$nom] ?? 0));
+            if ($v > 0) {
+                $propre['actes'][$mois][$nom] = $v;
+            }
+        }
+    }
+
+    ksort($propre['indicateurs']);
+    ksort($propre['actes']);
+
+    return $propre;
+}
+
 // ── Contrôles avant toute ouverture de fichier ───────────────────────────
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -138,7 +182,9 @@ if (!is_file(CONFIG)) {
 $config = require CONFIG;
 
 $brut = file_get_contents('php://input');
-if ($brut === false || strlen($brut) > 8192) {
+// 8 Ko suffisent très largement à un événement ordinaire ; un import porte
+// plusieurs années de compteurs, d'où la limite plus haute.
+if ($brut === false || strlen($brut) > 262144) {
     repondre('illisible');
 }
 
@@ -161,6 +207,24 @@ $codeValide = $codeFourni !== '' && hash_equals((string) $config['pin'], $codeFo
 
 if (in_array($evenement, ['acte', 'code', 'lire'], true) && !$codeValide) {
     repondre('code-refuse');
+}
+
+/* L'import remplace la totalité des compteurs : c'est la seule opération
+ * destructrice du fichier. Elle exige donc un secret distinct du code de
+ * l'équipe — celui-ci circule au comptoir, il n'a pas à pouvoir effacer un
+ * trimestre de relevés.
+ *
+ * Absent de config.php, l'import n'existe pas. C'est l'état par défaut, et
+ * le bon : on ne l'active que le temps d'une migration. */
+if ($evenement === 'import') {
+    $secret = isset($config['admin']) ? (string) $config['admin'] : '';
+    if ($secret === '') {
+        repondre('import-desactive');
+    }
+    $fourni = isset($data['admin']) ? (string) $data['admin'] : '';
+    if ($fourni === '' || !hash_equals($secret, $fourni)) {
+        repondre('admin-refuse');
+    }
 }
 
 // ── Lecture, modification, écriture, sous verrou ─────────────────────────
@@ -211,6 +275,16 @@ try {
         $jeton = 'code-ok';
     } elseif ($evenement === 'lire') {
         $jeton = 'lire-ok';
+    } elseif ($evenement === 'import') {
+        $recu = $data['etat'] ?? null;
+        if (is_array($recu)) {
+            $plafond = $etat['plafond'] ?? [];
+            $etat = assainir($recu);
+            $etat['plafond'] = $plafond;   // garde-fou interne, jamais importé
+            $jeton = 'import-ok';
+        } else {
+            $jeton = 'import-vide';
+        }
     } elseif (in_array($evenement, ['debut', 'fin', 'pdf', 'acte'], true)) {
         // La ligne du mois ne se crée que pour un événement reconnu : sinon
         // un paquet fantaisiste suffirait à ouvrir un mois vide dans les
