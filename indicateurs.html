@@ -243,10 +243,7 @@
                     <span class="cle"><span class="pastille doses"></span>
                         Doses administrées à la MSP</span>
                 </div>
-                <p style="color: var(--text-gray); font-size: 0.87rem; margin: 0.5rem 0 0;">
-                    Survolez une colonne pour lire sa valeur. Le détail chiffré est
-                    dans le tableau ci-dessous.
-                </p>
+
                 <div class="compare" id="compare"></div>
                 <p class="vide" id="compare-vide" hidden>Aucun relevé pour l'instant.</p>
             </section>
@@ -261,7 +258,6 @@
                             <th>Complétés</th>
                             <th>Complétion</th>
                             <th>Moy. vaccins</th>
-                            <th>45 ans et +</th>
                             <th>Déjà faits</th>
                             <th>Doses</th>
                         </tr></thead>
@@ -650,7 +646,12 @@
             const GROUPE = Math.max(56, Math.min(120, dispo / lignes.length));
             const BARRE = Math.min(24, GROUPE * 0.36);
 
-            const MG = 48, MD = 14, MH = 16, MB = 48;
+            /* La valeur doit tenir dans la largeur d'une colonne : à douze
+               mois les colonnes se resserrent, et deux nombres voisins se
+               chevaucheraient. */
+            const TAILLE = Math.max(8, Math.min(11, Math.round(BARRE * 0.46)));
+
+            const MG = 48, MD = 14, MH = 24, MB = 48;
             const HP = 170;
             const L = MG + GROUPE * lignes.length + MD;
             const H = MH + HP + MB;
@@ -682,13 +683,28 @@
                 const x1 = centre - BARRE - 2;
                 const x2 = centre + 2;
 
+                /* La valeur est écrite sur la colonne plutôt que réservée au
+                   survol : sur un écran tactile il n'y a pas de survol, et un
+                   chiffre qu'il faut aller chercher n'est pas lu. */
                 const barre = function (x, v, couleur, nom) {
                     const hauteur = Math.max(v > 0 ? 2 : 0, HP * v / haut);
-                    return '<rect x="' + x.toFixed(1) + '" y="' + (y(v)).toFixed(1)
+                    const sommet = y(v);
+
+                    /* Au-dessus de la colonne, sauf quand celle-ci frôle le
+                       haut du cadre : l'étiquette passe alors dedans, en
+                       blanc. Un chiffre coupé par le bord ne se lit pas. */
+                    const dehors = sommet - 6 > MH;
+                    const ty = dehors ? sommet - 6 : sommet + TAILLE + 3;
+
+                    return '<rect x="' + x.toFixed(1) + '" y="' + sommet.toFixed(1)
                          + '" width="' + BARRE.toFixed(1) + '" height="' + hauteur.toFixed(1)
                          + '" fill="' + couleur + '" rx="2"><title>'
                          + echapper(moisLisible(l.mois)) + ' — ' + nom + ' : ' + v
-                         + '</title></rect>';
+                         + '</title></rect>'
+                         + '<text x="' + (x + BARRE / 2).toFixed(1) + '" y="' + ty.toFixed(1)
+                         + '" text-anchor="middle" font-size="' + TAILLE
+                         + '" font-weight="700" fill="'
+                         + (dehors ? couleur : '#ffffff') + '">' + v + '</text>';
                 };
 
                 colonnes += barre(x1, l.besoin, 'var(--primary)', 'restant à faire')
@@ -784,7 +800,6 @@
             const corps = document.querySelector('#tableau-mois tbody');
             corps.innerHTML = mois.slice().reverse().map(function (m) {
                 const l = etat.indicateurs[m] || {};
-                const p45 = (Number(l['45-64']) || 0) + (Number(l['65+']) || 0);
                 const dm = etat.actes && etat.actes[m] ? etat.actes[m] : {};
                 let dosesMois = 0;
                 VACCINS.forEach(function (v) { dosesMois += Number(dm[v]) || 0; });
@@ -795,7 +810,6 @@
                      + '<td>' + effectif(l.completes) + '</td>'
                      + '<td>' + pourcent(Number(l.completes) || 0, Number(l.commences) || 0) + '</td>'
                      + '<td>' + decimal(Number(l.recommandes) || 0, Number(l.completes) || 0) + '</td>'
-                     + '<td>' + effectif(p45) + '</td>'
                      + '<td>' + pourcent(Number(l.faits) || 0, Number(l.recommandes) || 0) + '</td>'
                      + '<td>' + effectif(dosesMois) + '</td>'
                      + '</tr>';
