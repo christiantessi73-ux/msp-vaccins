@@ -430,6 +430,20 @@
             }).join('') || '<tr><td colspan="9" class="vide">Aucun relevé pour l\'instant.</td></tr>';
         }
 
+
+        /* L'adresse réellement appelée, en absolu.
+           « Vérifiez la connexion » n'aide personne quand la page est ouverte
+           depuis un serveur de test ou un fichier local : l'appel part alors
+           vers une adresse qui n'héberge pas api.php, et la panne ressemble à
+           une panne de réseau. Afficher l'adresse tranche en un coup d'œil. */
+        function adresseAppelee() {
+            try {
+                return new URL(STATS_ENDPOINT, window.location.href).href;
+            } catch (err) {
+                return STATS_ENDPOINT;
+            }
+        }
+
         function afficherCode(texte, ok) {
             messageCode.textContent = texte;
             messageCode.className = 'acte-message ' + (ok ? 'ok' : 'ko');
@@ -490,7 +504,9 @@
             })
             .catch(function () {
                 btnDeverrouiller.disabled = false;
-                afficherCode('Lecture impossible - vérifiez la connexion.', false);
+                afficherCode("Lecture impossible. La page appelle "
+                           + adresseAppelee() + " — si ce n'est pas une adresse "
+                           + "en msp-vaccins.fr, vous n'êtes pas sur le vrai site.", false);
             });
         }
 

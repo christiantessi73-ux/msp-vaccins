@@ -366,8 +366,8 @@
             .catch(function () {
                 // Un échec réseau ne doit surtout pas effacer la saisie :
                 // au comptoir, la refaire de mémoire, c'est la perdre.
-                afficher("Envoi impossible - vérifiez la connexion. "
-                       + "Vos doses sont toujours à l'écran, réessayez.", false);
+                afficher("Envoi impossible. La page appelle " + adresseAppelee()
+                       + " — vos doses sont toujours à l'écran, rien n'est perdu.", false);
                 rafraichir();
             });
         });
@@ -376,6 +376,20 @@
            Le code n'est pas comparé ici : la page l'envoie au script, qui
            répond « ok » ou « code-refuse ». Rien n'est écrit au passage,
            c'est une question, pas un comptage. */
+
+
+        /* L'adresse réellement appelée, en absolu.
+           « Vérifiez la connexion » n'aide personne quand la page est ouverte
+           depuis un serveur de test ou un fichier local : l'appel part alors
+           vers une adresse qui n'héberge pas api.php, et la panne ressemble à
+           une panne de réseau. Afficher l'adresse tranche en un coup d'œil. */
+        function adresseAppelee() {
+            try {
+                return new URL(STATS_ENDPOINT, window.location.href).href;
+            } catch (err) {
+                return STATS_ENDPOINT;
+            }
+        }
 
         function afficherCode(texte, ok) {
             messageCode.textContent = texte;
@@ -443,7 +457,9 @@
             })
             .catch(function () {
                 btnDeverrouiller.disabled = false;
-                afficherCode("Vérification impossible - vérifiez la connexion.", false);
+                afficherCode("Vérification impossible. La page appelle "
+                           + adresseAppelee() + " — si ce n'est pas une adresse "
+                           + "en msp-vaccins.fr, vous n'êtes pas sur le vrai site.", false);
             });
         }
 
