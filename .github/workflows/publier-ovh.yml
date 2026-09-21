@@ -71,8 +71,6 @@ jobs:
                      --exclude-glob STATISTIQUES.md \
                      --exclude-glob affiche-msp-vaccins.* \
                      --exclude-glob qr-msp-vaccins.png \
-                     --exclude-glob qr-saisie.svg \
-                     --exclude-glob qr-indicateurs.svg \
                      --exclude-glob CNAME \
                      --exclude-glob _headers \
                      --exclude-glob *.pdf \
