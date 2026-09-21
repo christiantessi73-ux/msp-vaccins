@@ -202,7 +202,6 @@
                             <th>45 ans et +</th>
                             <th>Couverture</th>
                             <th>Doses</th>
-                            <th>PDF</th>
                         </tr></thead>
                         <tbody></tbody>
                     </table>
@@ -348,7 +347,7 @@
             const mois = Object.keys(etat.indicateurs || {}).sort();
 
             // Totaux depuis le début
-            const t = { commences: 0, completes: 0, recommandes: 0, pdf: 0, faits: 0 };
+            const t = { commences: 0, completes: 0, recommandes: 0, faits: 0 };
             const parTranche = { '11-24': 0, '25-44': 0, '45-64': 0, '65+': 0 };
 
             mois.forEach(function (m) {
@@ -356,7 +355,6 @@
                 t.commences   += Number(l.commences) || 0;
                 t.completes   += Number(l.completes) || 0;
                 t.recommandes += Number(l.recommandes) || 0;
-                t.pdf         += Number(l.pdf) || 0;
                 t.faits       += Number(l.faits) || 0;
                 TRANCHES.forEach(function (tr) {
                     parTranche[tr[0]] += Number(l[tr[0]]) || 0;
@@ -384,8 +382,7 @@
                 [decimal(t.recommandes, t.completes), 'Vaccins recommandés par questionnaire'],
                 [pourcent(plus45, t.completes), 'Part des 45 ans et plus'],
                 [pourcent(t.faits, t.recommandes), 'Couverture déclarée'],
-                [nombre(totalDoses), 'Doses administrées à la MSP'],
-                [nombre(t.pdf), 'Bilans imprimés ou enregistrés']
+                [nombre(totalDoses), 'Doses administrées à la MSP']
             ];
 
             document.getElementById('tuiles').innerHTML = tuiles.map(function (x) {
@@ -425,9 +422,8 @@
                      + '<td>' + effectif(p45) + '</td>'
                      + '<td>' + pourcent(Number(l.faits) || 0, Number(l.recommandes) || 0) + '</td>'
                      + '<td>' + effectif(dosesMois) + '</td>'
-                     + '<td>' + effectif(l.pdf) + '</td>'
                      + '</tr>';
-            }).join('') || '<tr><td colspan="9" class="vide">Aucun relevé pour l\'instant.</td></tr>';
+            }).join('') || '<tr><td colspan="8" class="vide">Aucun relevé pour l\'instant.</td></tr>';
         }
 
 

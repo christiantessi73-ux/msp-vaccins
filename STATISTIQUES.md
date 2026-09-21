@@ -113,7 +113,6 @@ Une ligne par mois, dans la feuille `Indicateurs` :
 | `Questionnaires complétés` | Genre **et** âge renseignés |
 | `11-24 ans` … `65 ans et plus` | Répartition des questionnaires complétés |
 | `Total vaccins recommandés` | Somme, à diviser par les complétés pour la moyenne |
-| `Impressions PDF` | Clics sur « Imprimer / PDF », indicateur d'intention |
 | `Vaccins déjà faits (déclarés)` | Vaccins marqués « Déjà fait » par le patient |
 | `Vaccins à vérifier` | Vaccins marqués « Je ne sais plus » |
 | `Vaccins restant à faire` | Le reste : ni faits, ni à vérifier |

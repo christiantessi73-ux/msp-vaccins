@@ -110,7 +110,6 @@ function ligneIndicateurs(): array
         '45-64'       => 0,
         '65+'         => 0,
         'recommandes' => 0,
-        'pdf'         => 0,
         'faits'       => 0,
         'verif'       => 0,
         'restants'    => 0,
@@ -316,7 +315,7 @@ try {
         } else {
             $jeton = 'import-vide';
         }
-    } elseif (in_array($evenement, ['debut', 'fin', 'pdf', 'acte'], true)) {
+    } elseif (in_array($evenement, ['debut', 'fin', 'acte'], true)) {
         // La ligne du mois ne se crée que pour un événement reconnu : sinon
         // un paquet fantaisiste suffirait à ouvrir un mois vide dans les
         // compteurs, et le rapport hériterait d'une ligne qui ne compte rien.
@@ -347,11 +346,6 @@ try {
                     }
                 }
                 $jeton = 'fin-ok';
-                break;
-
-            case 'pdf':
-                $ligne['pdf']++;
-                $jeton = 'pdf-ok';
                 break;
 
             case 'acte':

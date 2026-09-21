@@ -43,7 +43,6 @@ var COLONNES = [
   '45-64 ans',
   '65 ans et plus',
   'Total vaccins recommandés',
-  'Impressions PDF',
   'Vaccins déjà faits (déclarés)',
   'Vaccins à vérifier',
   'Vaccins restant à faire'
@@ -181,7 +180,7 @@ function synchroniser() {
     var l = etat.indicateurs[m] || {};
     var n = function (k) { return Number(l[k]) || 0; };
     return [m, n('commences'), n('completes'), n('11-24'), n('25-44'),
-            n('45-64'), n('65+'), n('recommandes'), n('pdf'),
+            n('45-64'), n('65+'), n('recommandes'),
             n('faits'), n('verif'), n('restants')];
   });
 
@@ -305,8 +304,7 @@ function installerTableauDeBord() {
     ['Taux de complétion',                  "=IFERROR(B6/B5,\"\")",                  '0.0%'],
     ['Moyenne de vaccins par questionnaire', "=IFERROR(SUM('" + src + "'!H2:H)/B6,\"\")", '0.0'],
     ['Part des 45 ans et plus',             "=IFERROR((SUM('" + src + "'!F2:F)+SUM('" + src + "'!G2:G))/B6,\"\")", '0.0%'],
-    ['Bilans imprimés ou enregistrés en PDF', "=SUM('" + src + "'!I2:I)",            '0'],
-    ['Couverture déclarée (vaccins déjà faits)', "=IFERROR(SUM('" + src + "'!J2:J)/SUM('" + src + "'!H2:H),\"\")", '0.0%'],
+    ['Couverture déclarée (vaccins déjà faits)', "=IFERROR(SUM('" + src + "'!I2:I)/SUM('" + src + "'!H2:H),\"\")", '0.0%'],
     ['Doses administrées à la MSP',          "=IFERROR(SUM('" + ACTES + "'!Q2:Q),0)",  '0']
   ];
 
@@ -370,7 +368,7 @@ function installerTableauDeBord() {
   f.getRange('A' + DEB).setValue('PAR MOIS').setFontWeight('bold').setFontColor('#1B7A8A');
 
   var entetes = ['Mois', 'Complétés', 'Taux de complétion', 'Moy. vaccins',
-                 '45 ans et plus', 'Couverture déclarée', 'PDF'];
+                 '45 ans et plus', 'Couverture déclarée'];
   f.getRange(DEB + 1, 1, 1, entetes.length).setValues([entetes])
    .setFontWeight('bold').setBackground('#eef4fb');
 
@@ -380,10 +378,9 @@ function installerTableauDeBord() {
     "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!C2:C/'" + src + "'!B2:B,\"\")))",
     "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!H2:H/'" + src + "'!C2:C,\"\")))",
     "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR(('" + src + "'!F2:F+'" + src + "'!G2:G)/'" + src + "'!C2:C,\"\")))",
-    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!J2:J/'" + src + "'!H2:H,\"\")))",
-    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",'" + src + "'!I2:I))"
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!I2:I/'" + src + "'!H2:H,\"\")))"
   ];
-  var formats = ['@', '0', '0.0%', '0.0', '0.0%', '0.0%', '0'];
+  var formats = ['@', '0', '0.0%', '0.0', '0.0%', '0.0%'];
 
   for (var c = 0; c < colonnes.length; c++) {
     f.getRange(DEB + 2, c + 1).setFormula(adapter(colonnes[c], SEP));

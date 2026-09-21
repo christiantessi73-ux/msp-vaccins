@@ -559,7 +559,6 @@
 
         let statsDebutEnvoye = false;
         let statsFinEnvoye = false;
-        let statsPdfEnvoye = false;
         let statsEtat = { complet: 0, tranche: 'nr', nb: 0, faits: 0, verif: 0, restants: 0 };
 
         function envoyerStats(payload) {
@@ -599,14 +598,6 @@
                 verif: statsEtat.verif,
                 restants: statsEtat.restants
             });
-        }
-
-        /* Envoyé séparément : le bilan s'enregistre après « Terminer »,
-           donc après que le paquet « fin » soit déjà parti. */
-        function statsPdf() {
-            if (statsPdfEnvoye) return;
-            statsPdfEnvoye = true;
-            envoyerStats({ e: 'pdf' });
         }
 
         function trancheAge(age, hasAge) {
@@ -683,7 +674,6 @@
            système fait du fichier — dossier de téléchargement, feuille de
            partage — échappe à la page, d'où son rôle secondaire. */
         function enregistrerPdf() {
-            statsPdf();
             window.print();
         }
 
