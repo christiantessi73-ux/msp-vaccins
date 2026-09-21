@@ -97,9 +97,23 @@ trace de cette incertitude.
 ### Les vaccins administrés — feuille `Actes`
 
 Alimentée par `acte.html`, une page distincte du questionnaire, réservée à
-l'équipe et accessible par un QR code affiché au comptoir et au cabinet. Le
-soignant compte les doses qu'il vient d'administrer, saisit le code de
-l'équipe, valide.
+l'équipe et accessible par un QR code affiché au comptoir et au cabinet.
+
+La page s'ouvre **verrouillée** : tant que le code de l'équipe n'a pas été
+validé, le formulaire n'est pas affiché. Le code n'est pas comparé dans la
+page — il est envoyé au script, qui répond « ok » ou « code-refuse ». C'est ce
+qui permet de ne l'écrire nulle part dans une page publique : elle ne le
+connaît pas, elle le demande.
+
+Une fois déverrouillé, le soignant compte les doses avec les boutons − / + et
+valide. **Les compteurs repartent à zéro dès que l'enregistrement est
+confirmé**, pour qu'un second appui ne puisse pas recompter les mêmes doses.
+À l'inverse, un échec — code refusé, réseau coupé — laisse la saisie à
+l'écran : au comptoir, refaire un comptage de mémoire, c'est le perdre.
+
+Le code validé reste en mémoire le temps de la session, et nulle part
+ailleurs : ni cookie, ni `localStorage`. Recharger la page le redemande, ce
+qui est voulu sur un téléphone de comptoir qui passe de main en main.
 
 | Colonne | Ce qu'elle compte |
 |---|---|
@@ -126,11 +140,16 @@ tous, il ne porte aucune trace du bilan d'un patient. C'est délibéré — c'es
 ce qui maintient les deux feuilles anonymes. Les deux séries se lisent côte à
 côte, jamais en rapport.
 
-Le code de l'équipe (`PIN_SOIGNANT` dans `Code.gs`, recopié dans `acte.html`)
-a le même statut que la clé partagée : il évite la fausse manœuvre — un patient
-qui scanne l'affiche par curiosité — pas quelqu'un qui lit le code source de la
-page. Il n'a rien à protéger : `acte.html` ne sait qu'ajouter des doses, elle
-ne lit jamais le classeur.
+Le code de l'équipe (`PIN_SOIGNANT`, dans `Code.gs` **uniquement**) a le même
+statut que la clé partagée : il évite la fausse manœuvre — un patient qui
+scanne l'affiche par curiosité — pas quelqu'un de déterminé. Il n'a rien à
+protéger : `acte.html` ne sait qu'ajouter des doses, elle ne lit jamais le
+classeur.
+
+Chaque tentative de code compte dans `PLAFOND_PAR_HEURE`, ce qui rend une
+recherche exhaustive impraticable. Contrepartie assumée : quelqu'un d'acharné
+peut saturer le plafond et bloquer les comptages pendant une heure. Comme
+partout ici, le pire scénario est un comptage perdu, jamais une fuite.
 
 ## Deux règles à ne pas perdre de vue
 
@@ -193,9 +212,9 @@ payer pour s'en tenir à un Google Sheet.
    refuse tout et les compteurs restent à zéro.
 6. Reporter la même URL `/exec` et la même clé dans `acte.html`
    (`STATS_ENDPOINT` et `STATS_CLE`).
-7. Choisir le code de l'équipe : `var PIN_SOIGNANT` dans `Code.gs` et
-   `codeInput` côté `acte.html` — c'est le soignant qui le saisit, il n'est
-   écrit nulle part dans la page.
+7. Choisir le code de l'équipe : `var PIN_SOIGNANT` dans `Code.gs`, et nulle
+   part ailleurs. `acte.html` ne le connaît pas : elle le fait valider par le
+   script à chaque déverrouillage.
 8. Vérifier en lançant `testerInstallation()` depuis l'éditeur Apps Script :
    elle crée la ligne du mois dans `Indicateurs` **et** dans `Actes`, installe
    le `Tableau de bord`, et contrôle qu'un code d'équipe erroné est bien

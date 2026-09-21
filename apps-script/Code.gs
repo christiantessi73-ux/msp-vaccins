@@ -125,8 +125,28 @@ function doPost(e) {
   if (data.e === 'acte' && data.pin !== PIN_SOIGNANT) {
     return ContentService.createTextOutput('code-refuse');
   }
+  // « code » est traité plus bas, après le plafond : une tentative de code
+  // doit être comptée, sans quoi le code se chercherait sans limite.
 
   if (plafondAtteint()) return ContentService.createTextOutput('plafond');
+
+  /* Vérification du code seule : acte.html s'en sert pour décider d'afficher
+   * le formulaire ou non. Aucune écriture, aucun verrou.
+   *
+   * Pourquoi passer par le script plutôt que comparer dans la page : un code
+   * recopié dans acte.html serait lisible par quiconque affiche la source, et
+   * la page est publique. Ici, elle ne connaît jamais le code — elle demande.
+   *
+   * La tentative est comptée dans le plafond horaire, et c'est voulu : c'est
+   * ce qui rend une recherche exhaustive du code impraticable. Contrepartie
+   * assumée — quelqu'un d'acharné peut saturer le plafond et bloquer les
+   * compteurs pour l'heure. Comme ailleurs ici, le pire scénario est un
+   * comptage perdu, jamais une fuite.
+   */
+  if (data.e === 'code') {
+    return ContentService.createTextOutput(
+      data.pin === PIN_SOIGNANT ? 'ok' : 'code-refuse');
+  }
 
   var verrou = LockService.getScriptLock();
   // Deux patients peuvent finir en même temps : sans verrou, un incrément est perdu

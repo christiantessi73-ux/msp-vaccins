@@ -122,21 +122,29 @@
 
     <div class="container container-texte">
 
-        <section class="section-card">
+        <section class="section-card" id="bloc-code">
+            <h2>Code de l'équipe</h2>
             <div class="form-group">
-                <label for="code">Code de l'équipe</label>
+                <label for="code">Saisissez le code pour accéder à la saisie</label>
                 <input type="password" id="code" class="input-field acte-code"
                        inputmode="numeric" autocomplete="off" maxlength="6"
-                       placeholder="••••">
+                       placeholder="••••" autofocus>
             </div>
-            <p style="color: var(--text-gray); font-size: 0.9rem; margin: 0;">
+            <div class="cta-buttons" style="justify-content: flex-start; margin-top: 0;">
+                <button class="btn btn-valider" id="btn-deverrouiller">
+                    <i class="ph ph-lock-key-open"></i> Accéder à la saisie
+                </button>
+            </div>
+            <div id="message-code" class="acte-message" hidden></div>
+            <p style="color: var(--text-gray); font-size: 0.9rem; margin: 1rem 0 0;">
                 Ce code évite qu'un passant ne fausse les compteurs. Il ne protège
                 aucune donnée : cette page ne sait qu'ajouter des doses, elle
-                n'affiche rien sur personne.
+                n'affiche rien sur personne. Il est vérifié par le classeur, il
+                n'est écrit nulle part dans cette page.
             </p>
         </section>
 
-        <section class="section-card">
+        <section class="section-card" id="bloc-saisie" hidden>
             <h2>Les doses</h2>
             <div id="liste"></div>
 
@@ -157,7 +165,7 @@
             <div id="message" class="acte-message" hidden></div>
         </section>
 
-        <p class="privacy-notice">
+        <p class="privacy-notice" id="pied" hidden>
             Ces compteurs sont un <strong>plancher</strong>, jamais un total : une dose
             non saisie est une dose perdue pour le rapport, pas pour le patient.
             Le compte exact reste celui de la facturation.<br>
@@ -212,6 +220,18 @@
         const btnEnvoyer = document.getElementById('btn-envoyer');
         const btnVider = document.getElementById('btn-vider');
         const message = document.getElementById('message');
+        const blocCode = document.getElementById('bloc-code');
+        const blocSaisie = document.getElementById('bloc-saisie');
+        const messageCode = document.getElementById('message-code');
+        const btnDeverrouiller = document.getElementById('btn-deverrouiller');
+        const pied = document.getElementById('pied');
+
+        /* Le code validé vit ici, en mémoire, et nulle part ailleurs : ni
+           localStorage, ni sessionStorage, ni cookie. Recharger la page le
+           redemande - quatre chiffres, deux secondes - plutôt que de le
+           laisser traîner sur un téléphone de comptoir qui passe de main en
+           main. */
+        let codeValide = null;
 
         const doses = {};
         VACCINS.forEach(function (nom) { doses[nom] = 0; });
@@ -290,18 +310,20 @@
            fetch et non sendBeacon, et redirect:'follow' - Apps Script répond
            systématiquement par une redirection vers googleusercontent.com. */
         btnEnvoyer.addEventListener('click', function () {
-            const code = codeInput.value.trim();
-            if (!code) {
-                afficher("Saisissez d'abord le code de l'équipe.", false);
-                codeInput.focus();
-                return;
-            }
+            if (!codeValide) return;   // le formulaire n'existe pas sans code
+
+            /* Un envoi vide est refusé ici, et pas seulement par l'attribut
+               « disabled » du bouton : c'est ce qui garantit qu'un second
+               appui après un enregistrement réussi ne recompte pas les mêmes
+               doses. Les compteurs étant remis à zéro au succès, il n'y a
+               plus rien à envoyer - et cette ligne le dit explicitement. */
+            const combien = total();
+            if (combien === 0) return;
 
             const aEnvoyer = {};
             VACCINS.forEach(function (nom) {
                 if (doses[nom] > 0) aEnvoyer[nom] = doses[nom];
             });
-            const combien = total();
 
             btnEnvoyer.disabled = true;
             btnVider.disabled = true;
@@ -311,16 +333,17 @@
                 method: 'POST',
                 redirect: 'follow',
                 body: JSON.stringify({
-                    e: 'acte', k: STATS_CLE, pin: code, v: aEnvoyer
+                    e: 'acte', k: STATS_CLE, pin: codeValide, v: aEnvoyer
                 })
             })
             .then(function (r) { return r.text(); })
             .then(function (reponse) {
                 if (reponse.indexOf('code-refuse') !== -1) {
-                    afficher("Code de l'équipe incorrect : rien n'a été enregistré.", false);
-                    codeInput.value = '';
-                    codeInput.focus();
-                    rafraichir();
+                    // Le code a changé depuis le déverrouillage (script
+                    // redéployé en cours de service) : on reverrouille plutôt
+                    // que de laisser saisir dans le vide.
+                    reverrouiller("Le code de l'équipe n'est plus valide : "
+                                + "rien n'a été enregistré. Redemandez-le.");
                     return;
                 }
                 if (reponse.indexOf('ok') === -1) {
@@ -340,6 +363,84 @@
                 rafraichir();
             });
         });
+
+        /* ── Déverrouillage ──────────────────────────────────────────────
+           Le code n'est pas comparé ici : la page l'envoie au script, qui
+           répond « ok » ou « code-refuse ». Rien n'est écrit au passage,
+           c'est une question, pas un comptage. */
+
+        function afficherCode(texte, ok) {
+            messageCode.textContent = texte;
+            messageCode.className = 'acte-message ' + (ok ? 'ok' : 'ko');
+            messageCode.hidden = false;
+        }
+
+        function reverrouiller(raison) {
+            codeValide = null;
+            codeInput.value = '';
+            blocSaisie.hidden = true;
+            pied.hidden = true;
+            blocCode.hidden = false;
+            message.hidden = true;
+            vider();
+            afficherCode(raison, false);
+            codeInput.focus();
+        }
+
+        function deverrouiller() {
+            const code = codeInput.value.trim();
+            if (!code) {
+                afficherCode("Saisissez le code de l'équipe.", false);
+                codeInput.focus();
+                return;
+            }
+
+            btnDeverrouiller.disabled = true;
+            afficherCode('Vérification…', true);
+
+            fetch(STATS_ENDPOINT, {
+                method: 'POST',
+                redirect: 'follow',
+                body: JSON.stringify({ e: 'code', k: STATS_CLE, pin: code })
+            })
+            .then(function (r) { return r.text(); })
+            .then(function (reponse) {
+                btnDeverrouiller.disabled = false;
+
+                if (reponse.indexOf('code-refuse') !== -1) {
+                    afficherCode("Code incorrect.", false);
+                    codeInput.value = '';
+                    codeInput.focus();
+                    return;
+                }
+                if (reponse.indexOf('ok') === -1) {
+                    afficherCode("Le classeur n'a pas répondu comme attendu "
+                               + "(« " + reponse + " ») : réessayez.", false);
+                    return;
+                }
+
+                codeValide = code;
+                codeInput.value = '';
+                messageCode.hidden = true;
+                blocCode.hidden = true;
+                blocSaisie.hidden = false;
+                pied.hidden = false;
+                vider();
+            })
+            .catch(function () {
+                btnDeverrouiller.disabled = false;
+                afficherCode("Vérification impossible - vérifiez la connexion.", false);
+            });
+        }
+
+        btnDeverrouiller.addEventListener('click', deverrouiller);
+
+        // Entrée valide le code : au comptoir, on tape sans lever les yeux.
+        codeInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); deverrouiller(); }
+        });
+
+        codeInput.addEventListener('input', function () { messageCode.hidden = true; });
 
         rafraichir();
     </script>
