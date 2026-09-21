@@ -14,7 +14,7 @@ par patient.
 
 ## Qui consulte quoi
 
-Le classeur contient deux feuilles :
+Le classeur contient trois feuilles :
 
 - **`Tableau de bord`** — ce que les médecins ouvrent. Uniquement des formules :
   totaux depuis le début, taux de complétion, moyenne de vaccins, part des
@@ -26,19 +26,23 @@ Le classeur contient deux feuilles :
   complétés). Des colonnes, jamais de camembert : un secteur ne permet pas de
   comparer des valeurs proches, ce qui est précisément la question posée. Leurs
   deux couleurs restent distinguables en vision des couleurs déficiente.
-- **`Indicateurs`** — les compteurs bruts, alimentés par le site. On n'y touche
-  pas à la main.
+- **`Indicateurs`** — les compteurs bruts du questionnaire, alimentés par le
+  site. On n'y touche pas à la main.
+- **`Actes`** — les doses administrées, saisies par l'équipe depuis
+  `acte.html`. Une ligne par mois, une colonne par vaccin. On n'y touche pas
+  à la main non plus.
 
 ### Donner l'accès aux médecins de l'hôpital
 
-Les deux feuilles vivent dans le **même classeur** : partager le fichier donne
+Les trois feuilles vivent dans le **même classeur** : partager le fichier donne
 accès au tableau de bord *et* aux compteurs bruts, il n'y a rien à partager
 séparément.
 
 **Rôle : Lecteur, jamais Éditeur.** Une saisie manuelle, même involontaire,
-fausserait des compteurs qu'aucune sauvegarde ne permet de reconstituer. La
-feuille `Indicateurs` est en plus protégée en mode avertissement : le script
-écrit librement, un humain reçoit une demande de confirmation.
+fausserait des compteurs qu'aucune sauvegarde ne permet de reconstituer. Les
+feuilles `Indicateurs` et `Actes` sont en plus protégées en mode
+avertissement : le script écrit librement, un humain reçoit une demande de
+confirmation.
 
 Deux façons de procéder, selon les comptes des médecins :
 
@@ -73,9 +77,60 @@ Une ligne par mois, dans la feuille `Indicateurs` :
 | `11-24 ans` … `65 ans et plus` | Répartition des questionnaires complétés |
 | `Total vaccins recommandés` | Somme, à diviser par les complétés pour la moyenne |
 | `Impressions PDF` | Clics sur « Imprimer / PDF », indicateur d'intention |
+| `Vaccins déjà faits (déclarés)` | Vaccins marqués « Déjà fait » par le patient |
+| `Vaccins à vérifier` | Vaccins marqués « Je ne sais plus » |
+| `Vaccins restant à faire` | Le reste : ni faits, ni à vérifier |
 
 Moyenne de vaccins par questionnaire = `Total vaccins recommandés` ÷
 `Questionnaires complétés`.
+
+Couverture déclarée = `Vaccins déjà faits` ÷ `Total vaccins recommandés`. Les
+trois dernières colonnes s'additionnent pour retomber sur `Total vaccins
+recommandés` : c'est le contrôle de cohérence de la feuille.
+
+**Pourquoi « à vérifier » reste une colonne à part.** C'est une non-réponse,
+pas un vaccin manquant. Un patient qui ne touche aucun bouton laisse tout en
+« restant à faire » : cette colonne mélange donc du vrai non-fait et du
+silence. Fondre « à vérifier » dans l'une des deux autres effacerait la seule
+trace de cette incertitude.
+
+### Les vaccins administrés — feuille `Actes`
+
+Alimentée par `acte.html`, une page distincte du questionnaire, réservée à
+l'équipe et accessible par un QR code affiché au comptoir et au cabinet. Le
+soignant compte les doses qu'il vient d'administrer, saisit le code de
+l'équipe, valide.
+
+| Colonne | Ce qu'elle compte |
+|---|---|
+| `Mois` | Mois de saisie, format `2026-09` |
+| `DTPc` … `Méningocoque B` | Doses administrées, une colonne par vaccin |
+| `Total actes` | Somme des colonnes précédentes |
+
+**Rien d'autre ne remonte.** Pas d'âge, pas de genre, pas de date plus fine
+que le mois, et surtout aucun croisement. « Grippe : 12 ce mois » est anonyme ;
+« Grippe, femme, 45-64 ans, le 21 » est une donnée de santé nominative dans
+une officine où l'on sait qui est passé. La tentation d'enrichir cette feuille
+est la seule façon de faire s'écrouler tout l'édifice décrit plus haut.
+
+**Ces compteurs sont un plancher, jamais un total.** Tout repose sur le fait
+qu'un soignant pense à saisir, un jour d'affluence. Une dose non saisie est
+perdue pour le rapport. Il faut donc surveiller le taux de saisie les premières
+semaines — en comparant avec la facturation — et écrire dans le rapport qu'il
+s'agit d'un minimum.
+
+**`Actes` et `Indicateurs` ne se divisent pas l'un par l'autre.** Un vaccin
+fait au comptoir n'a pas forcément suivi un questionnaire, et rien dans le
+dispositif ne permet de le savoir : le QR code du comptoir est le même pour
+tous, il ne porte aucune trace du bilan d'un patient. C'est délibéré — c'est
+ce qui maintient les deux feuilles anonymes. Les deux séries se lisent côte à
+côte, jamais en rapport.
+
+Le code de l'équipe (`PIN_SOIGNANT` dans `Code.gs`, recopié dans `acte.html`)
+a le même statut que la clé partagée : il évite la fausse manœuvre — un patient
+qui scanne l'affiche par curiosité — pas quelqu'un qui lit le code source de la
+page. Il n'a rien à protéger : `acte.html` ne sait qu'ajouter des doses, elle
+ne lit jamais le classeur.
 
 ## Deux règles à ne pas perdre de vue
 
@@ -91,22 +146,40 @@ désigne une personne.
 
 ## Ce que ces chiffres ne disent pas
 
-**Ils ne prouvent aucun acte vaccinal.** Le nombre de patients vaccinés sort de
-la facturation, et l'Assurance Maladie l'a déjà. Les compteurs du site
-documentent l'**amont** : l'action de sensibilisation.
+**La feuille `Indicateurs` ne prouve aucun acte vaccinal.** Elle documente
+l'**amont** : l'action de sensibilisation. Le nombre exact de patients vaccinés
+sort de la facturation, et l'Assurance Maladie l'a déjà.
 
-Formulation défendable :
+**La feuille `Actes` compte de vraies doses, mais reste déclarative** — c'est
+l'équipe qui saisit, à la main, entre deux patients. Elle dit « au moins tant
+de doses », jamais « exactement tant ».
+
+Formulations défendables :
 
 > 340 patients ont fait le point sur leurs vaccins via le QR code du comptoir
 > ce trimestre, dont 58 % de 45 ans et plus.
+
+> Sur la même période, l'équipe a saisi au moins 120 doses administrées sur
+> place, dont 64 vaccins antigrippaux.
 
 Formulation à proscrire, parce qu'elle affirme une causalité que rien
 n'établit :
 
 > ~~340 questionnaires → 120 vaccinations~~
 
-Les deux chiffres existent, mais aucun lien technique ne les relie : c'est
-exactement ce qui rend les compteurs anonymes.
+Les deux chiffres existent, mais aucun lien technique ne les relie — le QR code
+du comptoir est identique pour tous et ne porte rien du bilan d'un patient.
+C'est précisément ce qui rend les deux feuilles anonymes, et c'est le prix à
+payer pour s'en tenir à un Google Sheet.
+
+> Si la CPAM demande un jour un **taux de conversion** (« quelle part des
+> vaccins recommandés a été administrée dans la foulée ? »), il faudrait un QR
+> code pré-rempli sur le bilan de chaque patient. C'est techniquement faisable,
+> mais cela mettrait des données de santé dans l'URL du QR : elles devraient
+> alors impérativement rester dans le **fragment** (après le `#`), jamais dans
+> la query string (après le `?`), sans quoi elles atterriraient dans les logs
+> d'OVH, hébergeur non certifié HDS. À n'envisager qu'après avoir vérifié, sur
+> plusieurs mois, que la saisie des actes tient.
 
 ## Installation
 
@@ -118,9 +191,18 @@ exactement ce qui rend les compteurs anonymes.
 5. Vérifier que `const STATS_CLE` (dans `index.html`) et `var CLE` (dans
    `Code.gs`) portent **exactement la même valeur** : sans cela le script
    refuse tout et les compteurs restent à zéro.
-6. Vérifier en lançant `testerInstallation()` depuis l'éditeur Apps Script :
-   elle crée la ligne du mois **et** la feuille `Tableau de bord`.
-7. Partager le classeur en lecture avec les médecins (voir plus haut).
+6. Reporter la même URL `/exec` et la même clé dans `acte.html`
+   (`STATS_ENDPOINT` et `STATS_CLE`).
+7. Choisir le code de l'équipe : `var PIN_SOIGNANT` dans `Code.gs` et
+   `codeInput` côté `acte.html` — c'est le soignant qui le saisit, il n'est
+   écrit nulle part dans la page.
+8. Vérifier en lançant `testerInstallation()` depuis l'éditeur Apps Script :
+   elle crée la ligne du mois dans `Indicateurs` **et** dans `Actes`, installe
+   le `Tableau de bord`, et contrôle qu'un code d'équipe erroné est bien
+   refusé. Le journal le dit explicitement.
+9. Partager le classeur en lecture avec les médecins (voir plus haut).
+10. Imprimer un QR code pointant vers `https://msp-vaccins.fr/acte.html` et
+    l'afficher au comptoir et au cabinet, hors de vue des patients.
 
 > **Changer la clé plus tard** : modifier les deux fichiers, publier le site,
 > *puis* redéployer le script (*Gérer les déploiements → Modifier → Nouvelle
@@ -129,6 +211,16 @@ exactement ce qui rend les compteurs anonymes.
 
 Si le tableau de bord doit être remis à neuf, relancer `installerTableauDeBord()`
 depuis l'éditeur : la feuille est recréée, les compteurs ne bougent pas.
+
+> **Ajouter une colonne plus tard** : le script resynchronise les en-têtes à
+> chaque écriture, donc une feuille déjà remplie reçoit les nouvelles colonnes
+> toute seule, vides pour les mois passés. En revanche, ne jamais déplacer ni
+> renommer une colonne à la main : les compteurs se repèrent par le libellé de
+> l'en-tête, et un libellé modifié fait cesser le comptage en silence.
+>
+> Même règle pour la liste des vaccins : `VACCINES` dans `index.html`,
+> `VACCINS` dans `Code.gs` et `VACCINS` dans `acte.html` doivent rester
+> identiques, mêmes noms et même ordre.
 
 Tant que `STATS_ENDPOINT` est vide, **rien n'est envoyé** — les événements
 s'affichent seulement dans la console du navigateur.

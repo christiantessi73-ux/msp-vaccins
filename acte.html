@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Saisie des vaccins administrés - MSP Route de Vienne</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* Page de comptoir : des cibles larges, une lecture en diagonale.
+           Elle est utilisée debout, sur un téléphone, entre deux patients. */
+        .acte-ligne {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .acte-ligne:last-child { border-bottom: none; }
+
+        .acte-nom {
+            flex: 1;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .acte-compteur {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        /* 44 px : la taille minimale d'une cible tactile atteignable sans
+           regarder. En dessous, on manque le bouton un doigt sur deux. */
+        .acte-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            background: #fff;
+            color: var(--primary);
+            font-size: 1.3rem;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: var(--transition);
+        }
+        .acte-btn:disabled { opacity: 0.35; cursor: default; }
+        @media (hover: hover) {
+            .acte-btn:not(:disabled):hover { border-color: var(--primary); }
+        }
+
+        .acte-nb {
+            min-width: 2ch;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-gray);
+        }
+        .acte-ligne.actif .acte-nb { color: var(--primary); }
+        .acte-ligne.actif { background: #f2fafb; }
+
+        .acte-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.2rem;
+            padding-top: 1rem;
+            border-top: 2px solid var(--border-color);
+            font-weight: 700;
+        }
+
+        .acte-message {
+            margin-top: 1rem;
+            padding: 0.9rem 1rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+        }
+        .acte-message.ok { background: #e8f6ec; color: #1c6b31; }
+        .acte-message.ko { background: #fdecea; color: #96281b; }
+
+        .acte-code { max-width: 200px; letter-spacing: 0.4em; text-align: center; }
+
+        /* Les boutons clairs du questionnaire ne prennent leurs couleurs que
+           sur le fond sombre de la barre du bilan. Ici, fond blanc : cette
+           page définit ses deux boutons plutôt que d'en détourner d'autres. */
+        .btn-valider {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-valider:disabled { background: var(--border-color); color: var(--text-gray); }
+        @media (hover: hover) {
+            .btn-valider:not(:disabled):hover { background: var(--primary-light); }
+        }
+
+        .btn-discret {
+            background: #fff;
+            border-color: var(--border-color);
+            color: var(--text-gray);
+        }
+        .btn-discret:disabled { opacity: 0.45; }
+        @media (hover: hover) {
+            .btn-discret:not(:disabled):hover { border-color: var(--primary); color: var(--primary); }
+        }
+    </style>
+</head>
+<body class="page-simple">
+
+    <header>
+        <p class="bandeau-msp">
+            <i class="ph ph-first-aid-kit" aria-hidden="true"></i>
+            <span>Réservé à l'équipe de la <strong>MSP Route de Vienne</strong></span>
+        </p>
+        <h1>Vaccins administrés</h1>
+        <p class="subtitle">Comptez les doses que vous venez d'administrer.<br>
+        Aucun nom, aucun âge, aucune date : seulement des quantités.</p>
+    </header>
+
+    <div class="container container-texte">
+
+        <section class="section-card">
+            <div class="form-group">
+                <label for="code">Code de l'équipe</label>
+                <input type="password" id="code" class="input-field acte-code"
+                       inputmode="numeric" autocomplete="off" maxlength="6"
+                       placeholder="••••">
+            </div>
+            <p style="color: var(--text-gray); font-size: 0.9rem; margin: 0;">
+                Ce code évite qu'un passant ne fausse les compteurs. Il ne protège
+                aucune donnée : cette page ne sait qu'ajouter des doses, elle
+                n'affiche rien sur personne.
+            </p>
+        </section>
+
+        <section class="section-card">
+            <h2>Les doses</h2>
+            <div id="liste"></div>
+
+            <div class="acte-total">
+                <span>Total à enregistrer</span>
+                <span id="total">0</span>
+            </div>
+
+            <div class="cta-buttons" style="margin-top: 1.2rem;">
+                <button class="btn btn-valider" id="btn-envoyer" disabled>
+                    <i class="ph ph-check-circle"></i> Enregistrer
+                </button>
+                <button class="btn btn-discret" id="btn-vider" disabled>
+                    <i class="ph ph-arrow-counter-clockwise"></i> Tout remettre à zéro
+                </button>
+            </div>
+
+            <div id="message" class="acte-message" hidden></div>
+        </section>
+
+        <p class="privacy-notice">
+            Ces compteurs sont un <strong>plancher</strong>, jamais un total : une dose
+            non saisie est une dose perdue pour le rapport, pas pour le patient.
+            Le compte exact reste celui de la facturation.<br>
+            <a href="index.html">Revenir au questionnaire</a>
+        </p>
+    </div>
+
+    <script>
+        /* ============== Saisie des vaccins administrés ==============
+
+           Ce que cette page envoie, et rien d'autre : des noms de vaccins et
+           des quantités. Pas d'âge, pas de genre, pas de date plus fine que
+           le mois - c'est le serveur qui date. Croiser le vaccin avec la
+           tranche d'âge dans une seule officine produirait des cases à 1 ou 2,
+           et un chiffre à 1 redevient quelqu'un.
+
+           Le QR code du comptoir mène ici, mais rien n'empêche un patient de
+           le scanner : la page doit donc rester inoffensive entre n'importe
+           quelles mains. Elle ne sait qu'ajouter, elle ne lit jamais le
+           classeur. Le code de l'équipe est vérifié par le script, pas ici :
+           le vérifier dans la page ne prouverait rien. */
+
+        const STATS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxm1ilbzrNRDX38Vr50M_Df5jQLKExNy9zT4E0aw6nYRhwF2DfBn-HrqziBDys-MdMd/exec";
+        const STATS_CLE = "msp-84feb9a16b719652c1d0286d";
+
+        /* Même liste et même ordre que VACCINES dans index.html et que VACCINS
+           dans apps-script/Code.gs. Les trois doivent rester identiques :
+           un nom qui diverge se compterait dans la colonne d'un autre. */
+        const VACCINS = [
+            'DTPc',
+            'HPV (Papillomavirus Humain)',
+            'Méningocoque',
+            'ROR',
+            'Hépatite B',
+            'Hépatite A',
+            'Varicelle',
+            'Grippe',
+            'Covid-19',
+            'Pneumocoque',
+            'Zona',
+            'Coqueluche',
+            'Bronchiolite / VRS',
+            'Méningocoque ACWY',
+            'Méningocoque B'
+        ];
+
+        const MAX_PAR_VACCIN = 50;
+
+        const liste = document.getElementById('liste');
+        const totalEl = document.getElementById('total');
+        const codeInput = document.getElementById('code');
+        const btnEnvoyer = document.getElementById('btn-envoyer');
+        const btnVider = document.getElementById('btn-vider');
+        const message = document.getElementById('message');
+
+        const doses = {};
+        VACCINS.forEach(function (nom) { doses[nom] = 0; });
+
+        function echapper(t) {
+            return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        liste.innerHTML = VACCINS.map(function (nom, i) {
+            const sur = echapper(nom);
+            return '<div class="acte-ligne" data-i="' + i + '">'
+                 + '<span class="acte-nom" id="nom-' + i + '">' + sur + '</span>'
+                 + '<span class="acte-compteur">'
+                 + '<button type="button" class="acte-btn" data-i="' + i + '" data-pas="-1"'
+                 + ' aria-label="Retirer une dose de ' + sur + '" disabled>−</button>'
+                 + '<span class="acte-nb" id="nb-' + i + '" aria-live="polite"'
+                 + ' aria-labelledby="nom-' + i + '">0</span>'
+                 + '<button type="button" class="acte-btn" data-i="' + i + '" data-pas="1"'
+                 + ' aria-label="Ajouter une dose de ' + sur + '">+</button>'
+                 + '</span></div>';
+        }).join('');
+
+        function total() {
+            return VACCINS.reduce(function (s, nom) { return s + doses[nom]; }, 0);
+        }
+
+        function rafraichir() {
+            VACCINS.forEach(function (nom, i) {
+                const n = doses[nom];
+                document.getElementById('nb-' + i).textContent = n;
+                const ligne = liste.querySelector('.acte-ligne[data-i="' + i + '"]');
+                ligne.classList.toggle('actif', n > 0);
+                ligne.querySelector('[data-pas="-1"]').disabled = (n === 0);
+                ligne.querySelector('[data-pas="1"]').disabled = (n >= MAX_PAR_VACCIN);
+            });
+
+            const t = total();
+            totalEl.textContent = t;
+            btnEnvoyer.disabled = (t === 0);
+            btnVider.disabled = (t === 0);
+        }
+
+        liste.addEventListener('click', function (e) {
+            const btn = e.target.closest('.acte-btn');
+            if (!btn || btn.disabled) return;
+
+            const nom = VACCINS[Number(btn.dataset.i)];
+            const n = doses[nom] + Number(btn.dataset.pas);
+            doses[nom] = Math.max(0, Math.min(MAX_PAR_VACCIN, n));
+
+            // Une saisie reprise efface le message de l'envoi précédent :
+            // un « enregistré » qui reste affiché pendant qu'on recompte
+            // ferait croire que le nouveau comptage est déjà parti.
+            message.hidden = true;
+            rafraichir();
+        });
+
+        function vider() {
+            VACCINS.forEach(function (nom) { doses[nom] = 0; });
+            rafraichir();
+        }
+
+        btnVider.addEventListener('click', function () {
+            message.hidden = true;
+            vider();
+        });
+
+        function afficher(texte, ok) {
+            message.textContent = texte;
+            message.className = 'acte-message ' + (ok ? 'ok' : 'ko');
+            message.hidden = false;
+        }
+
+        /* L'envoi attend la réponse du script, contrairement au questionnaire :
+           ici quelqu'un regarde l'écran et doit savoir si c'est compté. D'où
+           fetch et non sendBeacon, et redirect:'follow' - Apps Script répond
+           systématiquement par une redirection vers googleusercontent.com. */
+        btnEnvoyer.addEventListener('click', function () {
+            const code = codeInput.value.trim();
+            if (!code) {
+                afficher("Saisissez d'abord le code de l'équipe.", false);
+                codeInput.focus();
+                return;
+            }
+
+            const aEnvoyer = {};
+            VACCINS.forEach(function (nom) {
+                if (doses[nom] > 0) aEnvoyer[nom] = doses[nom];
+            });
+            const combien = total();
+
+            btnEnvoyer.disabled = true;
+            btnVider.disabled = true;
+            afficher('Enregistrement…', true);
+
+            fetch(STATS_ENDPOINT, {
+                method: 'POST',
+                redirect: 'follow',
+                body: JSON.stringify({
+                    e: 'acte', k: STATS_CLE, pin: code, v: aEnvoyer
+                })
+            })
+            .then(function (r) { return r.text(); })
+            .then(function (reponse) {
+                if (reponse.indexOf('code-refuse') !== -1) {
+                    afficher("Code de l'équipe incorrect : rien n'a été enregistré.", false);
+                    codeInput.value = '';
+                    codeInput.focus();
+                    rafraichir();
+                    return;
+                }
+                if (reponse.indexOf('ok') === -1) {
+                    afficher("Le classeur n'a pas répondu comme attendu (« " + reponse
+                           + " ») : les doses sont toujours affichées, réessayez.", false);
+                    rafraichir();
+                    return;
+                }
+                afficher(combien + (combien > 1 ? ' doses enregistrées.' : ' dose enregistrée.'), true);
+                vider();
+            })
+            .catch(function () {
+                // Un échec réseau ne doit surtout pas effacer la saisie :
+                // au comptoir, la refaire de mémoire, c'est la perdre.
+                afficher("Envoi impossible - vérifiez la connexion. "
+                       + "Vos doses sont toujours à l'écran, réessayez.", false);
+                rafraichir();
+            });
+        });
+
+        rafraichir();
+    </script>
+</body>
+</html>

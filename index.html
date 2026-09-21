@@ -347,12 +347,16 @@
             let todoHtml = "";
             let doneHtml = "";
             let doneCount = 0;
+            // « À vérifier » reste affiché avec les vaccins à faire, mais se
+            // compte à part : c'est une non-réponse, pas un vaccin manquant.
+            let unsureCount = 0;
 
             recos.forEach(function (entry) {
                 if (vaccineStatus[entry.name] === 'done') {
                     doneHtml += renderVaccineCard(entry);
                     doneCount++;
                 } else {
+                    if (vaccineStatus[entry.name] === 'unsure') unsureCount++;
                     todoHtml += renderVaccineCard(entry);
                 }
             });
@@ -425,7 +429,11 @@
             statsEtat = {
                 complet: (genre && hasAge) ? 1 : 0,
                 tranche: trancheAge(age, hasAge),
-                nb: count
+                nb: count,
+                // Ventilation déclarative : faits + à vérifier + restants = nb
+                faits: doneCount,
+                verif: unsureCount,
+                restants: count - doneCount - unsureCount
             };
         }
 
@@ -526,8 +534,9 @@
 
            Aucune donnée individuelle ne sort de la page : au plus deux envois
            par visite, sans identifiant, sans cookie, sans horodatage - c'est le
-           serveur qui date au mois. Seuls une tranche d'âge et un nombre de
-           vaccins sont transmis : « 45-64 ans, 4 vaccins » ne désigne personne.
+           serveur qui date au mois. Seuls une tranche d'âge et des nombres de
+           vaccins sont transmis : « 45-64 ans, 4 recommandés dont 1 déjà fait »
+           ne désigne personne.
 
            Le serveur (voir apps-script/Code.gs) n'écrit que des compteurs
            mensuels, jamais une ligne par visite.
@@ -546,7 +555,7 @@
         let statsDebutEnvoye = false;
         let statsFinEnvoye = false;
         let statsPdfEnvoye = false;
-        let statsEtat = { complet: 0, tranche: 'nr', nb: 0 };
+        let statsEtat = { complet: 0, tranche: 'nr', nb: 0, faits: 0, verif: 0, restants: 0 };
 
         function envoyerStats(payload) {
             if (!STATS_ENDPOINT) {
@@ -580,7 +589,10 @@
                 e: 'fin',
                 complet: statsEtat.complet,
                 tranche: statsEtat.tranche,
-                nb: statsEtat.nb
+                nb: statsEtat.nb,
+                faits: statsEtat.faits,
+                verif: statsEtat.verif,
+                restants: statsEtat.restants
             });
         }
 
