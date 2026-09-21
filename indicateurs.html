@@ -257,6 +257,8 @@
                             <th>Complétés</th>
                             <th>Moy. vaccins</th>
                             <th>Déjà faits</th>
+                            <th>À vérifier</th>
+                            <th>Restant à faire</th>
                             <th>Doses</th>
                         </tr></thead>
                         <tbody></tbody>
@@ -813,9 +815,11 @@
                      + '<td>' + effectif(l.completes) + '</td>'
                      + '<td>' + decimal(Number(l.recommandes) || 0, Number(l.completes) || 0) + '</td>'
                      + '<td>' + pourcent(Number(l.faits) || 0, Number(l.recommandes) || 0) + '</td>'
+                     + '<td>' + pourcent(Number(l.verif) || 0, Number(l.recommandes) || 0) + '</td>'
+                     + '<td>' + effectif(l.restants) + '</td>'
                      + '<td>' + effectif(dosesMois) + '</td>'
                      + '</tr>';
-            }).join('') || '<tr><td colspan="8" class="vide">Aucun relevé pour l\'instant.</td></tr>';
+            }).join('') || '<tr><td colspan="7" class="vide">Aucun relevé pour l\'instant.</td></tr>';
         }
 
 

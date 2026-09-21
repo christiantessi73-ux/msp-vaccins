@@ -405,7 +405,8 @@ function installerTableauDeBord() {
 
   f.getRange('A' + DEB).setValue('PAR MOIS').setFontWeight('bold').setFontColor('#1B7A8A');
 
-  var entetes = ['Mois', 'Complétés', 'Moy. vaccins', 'Déjà faits'];
+  var entetes = ['Mois', 'Complétés', 'Moy. vaccins', 'Déjà faits',
+                 'À vérifier', 'Restant à faire', 'Doses'];
   f.getRange(DEB + 1, 1, 1, entetes.length).setValues([entetes])
    .setFontWeight('bold').setBackground('#eef4fb');
 
@@ -413,9 +414,15 @@ function installerTableauDeBord() {
     "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",'" + src + "'!A2:A))",
     "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",'" + src + "'!B2:B))",
     "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!G2:G/'" + src + "'!B2:B,\"\")))",
-    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!H2:H/'" + src + "'!G2:G,\"\")))"
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!H2:H/'" + src + "'!G2:G,\"\")))",
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!I2:I/'" + src + "'!G2:G,\"\")))",
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",'" + src + "'!J2:J))",
+    /* Les doses vivent dans une autre feuille, et les mois n'y sont pas
+       forcément les mêmes : on les retrouve par leur libellé plutôt que par
+       leur position, sinon un mois sans dose décalerait toute la colonne. */
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR(VLOOKUP('" + src + "'!A2:A,'" + ACTES + "'!A:Q,17,FALSE),0)))"
   ];
-  var formats = ['@', '0', '0.0', '0.0%'];
+  var formats = ['@', '0', '0.0', '0.0%', '0.0%', '0', '0'];
 
   for (var c = 0; c < colonnes.length; c++) {
     f.getRange(DEB + 2, c + 1).setFormula(adapter(colonnes[c], SEP));
@@ -439,7 +446,7 @@ function installerTableauDeBord() {
    .setFontColor('#A85D00').setFontSize(9).setWrap(true);
 
   f.setColumnWidth(1, 280);
-  for (var w = 2; w <= 5; w++) f.setColumnWidth(w, 130);
+  for (var w = 2; w <= 7; w++) f.setColumnWidth(w, 120);
 
   installerGraphiques(f, src, ligneTotal, DEB);
 
