@@ -103,7 +103,6 @@ function mois(): string
 function ligneIndicateurs(): array
 {
     return [
-        'commences'   => 0,
         'completes'   => 0,
         '11-24'       => 0,
         '25-44'       => 0,
@@ -315,7 +314,7 @@ try {
         } else {
             $jeton = 'import-vide';
         }
-    } elseif (in_array($evenement, ['debut', 'fin', 'acte'], true)) {
+    } elseif (in_array($evenement, ['fin', 'acte'], true)) {
         // La ligne du mois ne se crée que pour un événement reconnu : sinon
         // un paquet fantaisiste suffirait à ouvrir un mois vide dans les
         // compteurs, et le rapport hériterait d'une ligne qui ne compte rien.
@@ -323,11 +322,6 @@ try {
         $ligne = &$etat['indicateurs'][$m];
 
         switch ($evenement) {
-            case 'debut':
-                $ligne['commences']++;
-                $jeton = 'debut-ok';
-                break;
-
             case 'fin':
                 if (!empty($data['complet'])) {
                     $ligne['completes']++;

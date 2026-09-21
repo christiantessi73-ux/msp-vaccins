@@ -54,7 +54,6 @@ var COLONNES_COMPARATIF = [
 ];
 var COLONNES = [
   'Mois',
-  'Questionnaires commencés',
   'Questionnaires complétés',
   '11-24 ans',
   '25-44 ans',
@@ -197,7 +196,7 @@ function synchroniser() {
   var lignesInd = moisTries(etat.indicateurs).map(function (m) {
     var l = etat.indicateurs[m] || {};
     var n = function (k) { return Number(l[k]) || 0; };
-    return [m, n('commences'), n('completes'), n('11-24'), n('25-44'),
+    return [m, n('completes'), n('11-24'), n('25-44'),
             n('45-64'), n('65+'), n('recommandes'),
             n('faits'), n('verif'), n('restants')];
   });
@@ -339,11 +338,9 @@ function installerTableauDeBord() {
   f.getRange('A4').setValue('DEPUIS LE DÉBUT').setFontWeight('bold').setFontColor('#1B7A8A');
 
   var synthese = [
-    ['Questionnaires commencés',            "=SUM('" + src + "'!B2:B)",              '0'],
-    ['Questionnaires complétés',            "=SUM('" + src + "'!C2:C)",              '0'],
-    ['Taux de complétion',                  "=IFERROR(B6/B5,\"\")",                  '0.0%'],
-    ['Moyenne de vaccins par questionnaire', "=IFERROR(SUM('" + src + "'!H2:H)/B6,\"\")", '0.0'],
-    ["Vaccins déjà faits, d'après les patients", "=IFERROR(SUM('" + src + "'!I2:I)/SUM('" + src + "'!H2:H),\"\")", '0.0%'],
+    ['Questionnaires complétés',            "=SUM('" + src + "'!B2:B)",              '0'],
+    ['Moyenne de vaccins par questionnaire', "=IFERROR(SUM('" + src + "'!G2:G)/B5,\"\")", '0.0'],
+    ["Vaccins déjà faits, d'après les patients", "=IFERROR(SUM('" + src + "'!H2:H)/SUM('" + src + "'!G2:G),\"\")", '0.0%'],
     ['Doses administrées à la MSP',          "=IFERROR(SUM('" + ACTES + "'!Q2:Q),0)",  '0']
   ];
 
@@ -359,10 +356,10 @@ function installerTableauDeBord() {
    .setFontWeight('bold').setFontColor('#1B7A8A');
 
   var tranches = [
-    ['11-24 ans',      "=SUM('" + src + "'!D2:D)"],
-    ['25-44 ans',      "=SUM('" + src + "'!E2:E)"],
-    ['45-64 ans',      "=SUM('" + src + "'!F2:F)"],
-    ['65 ans et plus', "=SUM('" + src + "'!G2:G)"]
+    ['11-24 ans',      "=SUM('" + src + "'!C2:C)"],
+    ['25-44 ans',      "=SUM('" + src + "'!D2:D)"],
+    ['45-64 ans',      "=SUM('" + src + "'!E2:E)"],
+    ['65 ans et plus', "=SUM('" + src + "'!F2:F)"]
   ];
 
   // En-tetes explicites : sans eux, le graphique peut prendre la premiere
@@ -406,19 +403,17 @@ function installerTableauDeBord() {
 
   f.getRange('A' + DEB).setValue('PAR MOIS').setFontWeight('bold').setFontColor('#1B7A8A');
 
-  var entetes = ['Mois', 'Complétés', 'Taux de complétion', 'Moy. vaccins',
-                 'Déjà faits'];
+  var entetes = ['Mois', 'Complétés', 'Moy. vaccins', 'Déjà faits'];
   f.getRange(DEB + 1, 1, 1, entetes.length).setValues([entetes])
    .setFontWeight('bold').setBackground('#eef4fb');
 
   var colonnes = [
     "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",'" + src + "'!A2:A))",
-    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",'" + src + "'!C2:C))",
-    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!C2:C/'" + src + "'!B2:B,\"\")))",
-    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!H2:H/'" + src + "'!C2:C,\"\")))",
-    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!I2:I/'" + src + "'!H2:H,\"\")))"
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",'" + src + "'!B2:B))",
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!G2:G/'" + src + "'!B2:B,\"\")))",
+    "=ARRAYFORMULA(IF('" + src + "'!A2:A=\"\",\"\",IFERROR('" + src + "'!H2:H/'" + src + "'!G2:G,\"\")))"
   ];
-  var formats = ['@', '0', '0.0%', '0.0', '0.0%'];
+  var formats = ['@', '0', '0.0', '0.0%'];
 
   for (var c = 0; c < colonnes.length; c++) {
     f.getRange(DEB + 2, c + 1).setFormula(adapter(colonnes[c], SEP));
@@ -442,7 +437,7 @@ function installerTableauDeBord() {
    .setFontColor('#A85D00').setFontSize(9).setWrap(true);
 
   f.setColumnWidth(1, 280);
-  for (var w = 2; w <= 6; w++) f.setColumnWidth(w, 130);
+  for (var w = 2; w <= 5; w++) f.setColumnWidth(w, 130);
 
   installerGraphiques(f, src, ligneTotal, DEB);
 
@@ -500,23 +495,22 @@ function installerGraphiques(f, src, ligneTotalActes, debutMensuel) {
     .build();
   f.insertChart(parAge);
 
-  // Activité mois par mois : deux séries, donc légende obligatoire
-  // La source est « Indicateurs » et non le tableau du dessous : ses lignes
-  // vides le sont réellement, là où les formules du tableau renvoient "",
-  // ce qui créerait des colonnes fantômes.
+  /* Questionnaires complétés, mois par mois : une seule série depuis que les
+     questionnaires commencés ne sont plus comptés, donc aucune légende.
+
+     La source est « Indicateurs » et non le tableau du dessous : ses lignes
+     vides le sont réellement, là où les formules du tableau renvoient "",
+     ce qui créerait des colonnes fantômes. */
   var brut = f.getParent().getSheetByName(src);
 
   var parMois = f.newChart()
     .setChartType(Charts.ChartType.COLUMN)
-    .addRange(brut.getRange('A1:C200'))
+    .addRange(brut.getRange('A1:B200'))
     .setPosition(18, 8, 0, 0)
-    .setOption('title', 'Activité mois par mois')
+    .setOption('title', 'Questionnaires complétés, mois par mois')
     .setOption('titleTextStyle', titre)
-    .setOption('series', {
-      0: { color: TEAL, labelInLegend: 'Commencés' },
-      1: { color: ORANGE, labelInLegend: 'Complétés' }
-    })
-    .setOption('legend', { position: 'top', alignment: 'start', textStyle: axeTexte })
+    .setOption('colors', [TEAL])
+    .setOption('legend', { position: 'none' })
     .setOption('bar', { groupWidth: '58%' })
     .setOption('backgroundColor', '#FFFFFF')
     .setOption('width', 620)

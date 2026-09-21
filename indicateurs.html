@@ -254,9 +254,7 @@
                     <table id="tableau-mois">
                         <thead><tr>
                             <th>Mois</th>
-                            <th>Commencés</th>
                             <th>Complétés</th>
-                            <th>Complétion</th>
                             <th>Moy. vaccins</th>
                             <th>Déjà faits</th>
                             <th>Doses</th>
@@ -740,12 +738,11 @@
             const mois = Object.keys(etat.indicateurs || {}).sort();
 
             // Totaux depuis le début
-            const t = { commences: 0, completes: 0, recommandes: 0, faits: 0 };
+            const t = { completes: 0, recommandes: 0, faits: 0 };
             const parTranche = { '11-24': 0, '25-44': 0, '45-64': 0, '65+': 0 };
 
             mois.forEach(function (m) {
                 const l = etat.indicateurs[m] || {};
-                t.commences   += Number(l.commences) || 0;
                 t.completes   += Number(l.completes) || 0;
                 t.recommandes += Number(l.recommandes) || 0;
                 t.faits       += Number(l.faits) || 0;
@@ -767,9 +764,7 @@
             });
 
             const tuiles = [
-                [nombre(t.commences), 'Questionnaires commencés'],
                 [nombre(t.completes), 'Questionnaires complétés'],
-                [pourcent(t.completes, t.commences), 'Taux de complétion'],
                 [decimal(t.recommandes, t.completes), 'Vaccins recommandés par questionnaire'],
                 [pourcent(t.faits, t.recommandes),
                  'Vaccins déjà faits, d\'après les patients'],
@@ -806,9 +801,7 @@
 
                 return '<tr>'
                      + '<td>' + echapper(moisLisible(m)) + '</td>'
-                     + '<td>' + effectif(l.commences) + '</td>'
                      + '<td>' + effectif(l.completes) + '</td>'
-                     + '<td>' + pourcent(Number(l.completes) || 0, Number(l.commences) || 0) + '</td>'
                      + '<td>' + decimal(Number(l.recommandes) || 0, Number(l.completes) || 0) + '</td>'
                      + '<td>' + pourcent(Number(l.faits) || 0, Number(l.recommandes) || 0) + '</td>'
                      + '<td>' + effectif(dosesMois) + '</td>'

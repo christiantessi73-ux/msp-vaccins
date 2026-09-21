@@ -557,7 +557,6 @@
            script ne sait qu'incrémenter des compteurs anonymes. */
         const STATS_CLE = "msp-84feb9a16b719652c1d0286d";
 
-        let statsDebutEnvoye = false;
         let statsFinEnvoye = false;
         let statsEtat = { complet: 0, tranche: 'nr', nb: 0, faits: 0, verif: 0, restants: 0 };
 
@@ -578,12 +577,6 @@
             } catch (err) { /* on retombe sur fetch */ }
             fetch(STATS_ENDPOINT, { method: 'POST', keepalive: true, body: corps })
                 .catch(function () { /* un indicateur perdu n'est pas une erreur */ });
-        }
-
-        function statsDebut() {
-            if (statsDebutEnvoye) return;
-            statsDebutEnvoye = true;
-            envoyerStats({ e: 'debut' });
         }
 
         function statsFin() {
@@ -608,10 +601,6 @@
             if (age <= 64) return '45-64';
             return '65+';
         }
-
-        // Début : à la première interaction réelle, pas au chargement
-        document.addEventListener('input', statsDebut, { once: true });
-        document.addEventListener('change', statsDebut, { once: true });
 
         // Fin : quand l'onglet passe en arrière-plan ou se ferme
         document.addEventListener('visibilitychange', function () {
@@ -641,7 +630,6 @@
                 return;
             }
 
-            statsDebut();
             statsFin();
             btnTerminer.disabled = true;
 

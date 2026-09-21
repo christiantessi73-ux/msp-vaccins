@@ -114,7 +114,6 @@ Une ligne par mois, dans la feuille `Indicateurs` :
 | Colonne | Ce qu'elle compte |
 |---|---|
 | `Mois` | Mois de recueil, format `2026-09` |
-| `Questionnaires commencés` | Première interaction avec le formulaire |
 | `Questionnaires complétés` | Genre **et** âge renseignés |
 | `11-24 ans` … `65 ans et plus` | Répartition des questionnaires complétés |
 | `Total vaccins recommandés` | Somme, à diviser par les complétés pour la moyenne |
@@ -352,10 +351,13 @@ assumée : quelqu'un d'acharné peut saturer le plafond et bloquer les comptages
 pendant une heure. Si un écart suspect apparaît, comparer avec la fréquentation
 du comptoir.
 
-**Le questionnaire peut perdre son événement de fin.** Il part quand l'onglet
-se ferme ou passe en arrière-plan ; un navigateur tué brutalement l'emporte.
-`Questionnaires commencés` est donc toujours supérieur ou égal à
-`Questionnaires complétés`, et l'écart n'est pas uniquement de l'abandon.
+**Un questionnaire perdu l'est sans trace.** L'événement de fin part au clic
+sur « Terminer », et à défaut quand l'onglet se ferme ou passe en
+arrière-plan ; un navigateur tué brutalement l'emporte. Depuis que les
+questionnaires commencés ne sont plus comptés — la MSP n'en avait pas
+l'usage — rien ne signale ces pertes, là où l'écart entre commencés et
+complétés les rendait visibles. `Questionnaires complétés` est donc un
+minimum, et l'abandon n'est plus mesurable.
 
 **Le classeur peut être en retard, jamais faux.** La synchronisation passe
 toutes les heures. Si elle échoue — OVH injoignable, secret mal recopié — elle
