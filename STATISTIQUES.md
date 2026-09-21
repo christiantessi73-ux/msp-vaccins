@@ -234,8 +234,21 @@ archive ZIP demanderait une bibliothèque — mais du HTML servi en
 `application/msword` sous l'extension `.doc`. Un « Enregistrer sous » dans
 Word le convertit en `.docx` si le destinataire l'exige.
 
-Des tableaux, pas de graphiques : Word affiche mal les images intégrées à une
-page web, et c'est un tableau qu'on cite dans un rapport.
+Le document reprend **les graphiques de la page**, convertis en images.
+
+Word ignore le SVG et n'affiche pas un `<img src="data:...">`, d'où l'idée
+répandue qu'on ne peut pas illustrer un document produit depuis une page web.
+Le format **MHTML** règle la question : il transporte le document et ses images
+dans un même envoi, chaque image étant une pièce jointe que le HTML appelle
+par son nom. Word le lit nativement.
+
+Les graphiques sont redessinés hors écran à taille fixe plutôt que capturés
+tels quels : ceux de la page s'adaptent à la largeur de la fenêtre, et un
+rapport tiré depuis un téléphone n'aurait pas la même mise en page que depuis
+un poste.
+
+Si la conversion échoue, le rapport part **sans ses images** plutôt que pas du
+tout : un document en tableaux reste utilisable, une erreur ne l'est pas.
 
 **Le document masque les effectifs inférieurs à 5**, là où l'écran interne les
 affiche. La différence est voulue : l'écran est lu par l'équipe qui produit ces

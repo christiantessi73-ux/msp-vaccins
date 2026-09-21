@@ -462,14 +462,16 @@
            côté dit alors la même chose, et elle, elle se replie. */
         const LARGE = window.matchMedia('(min-width: 800px)');
 
-        function dessinerCamembert() {
+        function dessinerCamembert(opts) {
+            opts = opts || {};
             const entrees = donneesAge;
             const total = entrees.reduce(function (s, e) { return s + e[1]; }, 0);
-            document.getElementById('age-vide').hidden = (total > 0);
 
-            const svg = document.getElementById('camembert-age');
-            const parts = document.getElementById('parts-age');
-            const bloc = document.getElementById('bloc-camembert');
+            const svg = opts.svg || document.getElementById('camembert-age');
+            const parts = opts.parts || document.getElementById('parts-age');
+            const bloc = opts.bloc || document.getElementById('bloc-camembert');
+            const elVide = opts.vide || document.getElementById('age-vide');
+            if (elVide) elVide.hidden = (total > 0);
 
             if (total === 0) {
                 svg.innerHTML = '';
@@ -477,8 +479,9 @@
                 return;
             }
 
-            const infographie = LARGE.matches;
-            bloc.classList.toggle('infographie', infographie);
+            const infographie = (opts.infographie !== undefined)
+                                ? opts.infographie : LARGE.matches;
+            if (bloc) bloc.classList.toggle('infographie', infographie);
 
             const L = infographie ? 820 : 320;
             const H = infographie ? 440 : 320;
@@ -647,8 +650,9 @@
             return pas * Math.ceil(valeur / pas);
         }
 
-        function rapprochement(mois, etat) {
-            const cible = document.getElementById('compare');
+        function rapprochement(mois, etat, opts) {
+            opts = opts || {};
+            const cible = opts.cible || document.getElementById('compare');
 
             const lignes = mois.map(function (m) {
                 const l = etat.indicateurs[m] || {};
@@ -658,13 +662,14 @@
                 return { mois: m, besoin: Number(l.restants) || 0, doses: doses };
             });
 
-            document.getElementById('compare-vide').hidden = (lignes.length > 0);
+            const elVide = opts.vide || document.getElementById('compare-vide');
+            if (elVide) elVide.hidden = (lignes.length > 0);
             if (lignes.length === 0) { cible.innerHTML = ''; return; }
 
             /* La largeur d'un groupe s'adapte : assez serrée pour que douze
                mois tiennent, assez large pour que trois mois n'aient pas
                l'air perdus. Au-delà, le conteneur défile. */
-            const dispo = (cible.clientWidth || 700) - 70;
+            const dispo = (opts.largeur || cible.clientWidth || 700) - 70;
             const GROUPE = Math.max(56, Math.min(120, dispo / lignes.length));
             const BARRE = Math.min(24, GROUPE * 0.36);
 
@@ -770,6 +775,198 @@
            integrees a une page web, et c'est un tableau qu'on cite dans un
            rapport de toute facon. */
 
+        /* Les graphiques du rapport.
+
+           Word ignore le SVG et n'affiche pas un <img src="data:...">, d'où
+           l'idée répandue qu'on ne peut pas illustrer un document produit
+           depuis une page web. C'est faux : le format MHTML, la « page web
+           en un seul fichier » de Word, transporte le document et ses images
+           dans un même envoi, chaque image étant une pièce jointe que le
+           HTML appelle par son nom. Word le lit nativement.
+
+           Reste à transformer le SVG en PNG, puisque Word ne sait pas non
+           plus lire le premier : on le dessine dans un canevas. */
+
+        function svgVersPng(svg, largeur, hauteur) {
+            return new Promise(function (resoudre, rejeter) {
+                /* Rasterisé hors de la page, le SVG perd les polices héritées
+                   de la feuille de style : on les lui donne explicitement,
+                   sinon Word reçoit un graphique dans une fonte au hasard.
+
+                   Sur une copie, et par setAttribute plutôt qu'en retouchant
+                   la chaîne : le sérialiseur écrit déjà l'attribut xmlns, et
+                   en ajouter un seul de plus suffit à rendre le XML invalide
+                   et l'image illisible. */
+                const copie = svg.cloneNode(true);
+                copie.setAttribute('font-family', 'Calibri, Arial, sans-serif');
+                copie.setAttribute('width', largeur);
+                copie.setAttribute('height', hauteur);
+                const complet = new XMLSerializer().serializeToString(copie);
+
+                const image = new Image();
+                image.onload = function () {
+                    try {
+                        // Deux fois la taille : à l'impression, un PNG à la
+                        // taille d'écran sort crénelé.
+                        const canevas = document.createElement('canvas');
+                        canevas.width = largeur * 2;
+                        canevas.height = hauteur * 2;
+                        const ctx = canevas.getContext('2d');
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canevas.width, canevas.height);
+                        ctx.drawImage(image, 0, 0, canevas.width, canevas.height);
+                        resoudre(canevas.toDataURL('image/png').split(',')[1]);
+                    } catch (err) {
+                        rejeter(err);
+                    }
+                };
+                image.onerror = function () { rejeter(new Error('svg illisible')); };
+
+                /* Un délai de garde, sans quoi une image qui ne se charge ni
+                   ne signale d'erreur laisserait la promesse en suspens — et
+                   avec elle le bouton désactivé, sans rapport ni message. */
+                setTimeout(function () { rejeter(new Error('conversion trop lente')); }, 5000);
+
+                image.src = 'data:image/svg+xml;base64,'
+                          + btoa(unescape(encodeURIComponent(complet)));
+            });
+        }
+
+        /* Les doses sont affichées à l'écran en HTML, pas en SVG : rien à
+           rasteriser. On en dessine donc une version pour le rapport, dans la
+           même forme et les mêmes couleurs. */
+        function svgDoses(entrees) {
+            if (entrees.length === 0) return null;
+
+            const LIGNE = 26, MG = 190, MD = 46, MH = 10;
+            const L = 760;
+            const H = MH * 2 + LIGNE * entrees.length;
+            const piste = L - MG - MD;
+            const max = entrees.reduce(function (m, e) { return Math.max(m, e[1]); }, 0);
+
+            let corps = '';
+            entrees.forEach(function (e, i) {
+                const y = MH + LIGNE * i;
+                const largeur = max > 0 ? Math.max(2, piste * e[1] / max) : 0;
+                corps += '<text x="' + (MG - 10) + '" y="' + (y + 15)
+                       + '" text-anchor="end" font-size="12" fill="#333333">'
+                       + echapper(e[0]) + '</text>'
+                       + '<rect x="' + MG + '" y="' + (y + 4) + '" width="'
+                       + largeur.toFixed(1) + '" height="16" rx="2" fill="#EB6834"></rect>'
+                       + '<text x="' + (MG + largeur + 8).toFixed(1) + '" y="' + (y + 16)
+                       + '" font-size="12" font-weight="700" fill="#333333">'
+                       + e[1] + '</text>';
+            });
+
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 ' + L + ' ' + H);
+            svg.setAttribute('width', L);
+            svg.setAttribute('height', H);
+            svg.innerHTML = corps;
+            return { svg: svg, largeur: L, hauteur: H };
+        }
+
+        /* Les trois graphiques, dessinés hors écran à taille fixe.
+
+           On ne rasterise pas ceux de la page : leur taille suit la largeur
+           de la fenêtre, et un rapport tiré depuis un téléphone n'aurait pas
+           la même mise en page que depuis un poste. */
+        function graphiquesDuRapport(etat) {
+            const cache = document.createElement('div');
+            cache.setAttribute('aria-hidden', 'true');
+            cache.style.cssText = 'position:absolute;left:-10000px;top:0;width:900px;';
+            document.body.appendChild(cache);
+
+            const cibles = [];
+
+            const bloc = function (id) {
+                const d = document.createElement('div');
+                d.id = id;
+                cache.appendChild(d);
+                return d;
+            };
+
+            const svgAge = bloc('rapport-age');
+            const svgComp = bloc('rapport-compare');
+            const vide = bloc('rapport-vide');
+
+            dessinerCamembert({ svg: svgAge, parts: bloc('rapport-parts'),
+                                vide: vide, infographie: true });
+
+            const mois = Object.keys(etat.indicateurs || {}).sort();
+            rapprochement(mois, etat, { cible: svgComp, vide: vide, largeur: 820 });
+
+            const doses = {};
+            let total = 0;
+            VACCINS.forEach(function (v) { doses[v] = 0; });
+            Object.keys(etat.actes || {}).forEach(function (m) {
+                const d = etat.actes[m] || {};
+                VACCINS.forEach(function (v) {
+                    doses[v] += Number(d[v]) || 0;
+                    total += Number(d[v]) || 0;
+                });
+            });
+            const listeDoses = VACCINS.map(function (v) { return [v, doses[v]]; })
+                .filter(function (e) { return e[1] > 0; })
+                .sort(function (a, b) { return b[1] - a[1]; });
+            const dessinDoses = svgDoses(listeDoses);
+
+            const aConvertir = [
+                { nom: 'graphique-ages.png', svg: svgAge.querySelector('svg'),
+                  l: 820, h: 440 },
+                { nom: 'graphique-doses.png',
+                  svg: dessinDoses ? dessinDoses.svg : null,
+                  l: dessinDoses ? dessinDoses.largeur : 0,
+                  h: dessinDoses ? dessinDoses.hauteur : 0 },
+                { nom: 'graphique-mois.png', svg: svgComp.querySelector('svg'),
+                  l: 820, h: 242 }
+            ].filter(function (x) { return x.svg; });
+
+            if (dessinDoses) cache.appendChild(dessinDoses.svg);
+
+            return Promise.all(aConvertir.map(function (x) {
+                return svgVersPng(x.svg, x.l, x.h).then(function (base64) {
+                    return { nom: x.nom, base64: base64, l: x.l, h: x.h };
+                });
+            })).then(function (images) {
+                document.body.removeChild(cache);
+                return images;
+            }).catch(function (err) {
+                document.body.removeChild(cache);
+                throw err;
+            });
+        }
+
+        /* L'assemblage MHTML : une enveloppe, le document, puis une pièce par
+           image. Word associe chaque <img src="nom.png"> à la pièce dont le
+           Content-Location porte ce nom. */
+        function assemblerMhtml(html, images) {
+            const limite = '----=_MspVaccins_' + Date.now();
+            const coupe = function (b64) {
+                return (b64.match(/.{1,76}/g) || []).join('\r\n');
+            };
+
+            let sortie = 'MIME-Version: 1.0\r\n'
+                       + 'Content-Type: multipart/related; type="text/html"; '
+                       + 'boundary="' + limite + '"\r\n\r\n'
+                       + 'Ce document se lit avec un logiciel gérant le format MHTML.\r\n\r\n'
+                       + '--' + limite + '\r\n'
+                       + 'Content-Type: text/html; charset="utf-8"\r\n'
+                       + 'Content-Transfer-Encoding: base64\r\n'
+                       + 'Content-Location: rapport.html\r\n\r\n'
+                       + coupe(btoa(unescape(encodeURIComponent(html)))) + '\r\n\r\n';
+
+            images.forEach(function (im) {
+                sortie += '--' + limite + '\r\n'
+                        + 'Content-Type: image/png\r\n'
+                        + 'Content-Transfer-Encoding: base64\r\n'
+                        + 'Content-Location: ' + im.nom + '\r\n\r\n'
+                        + coupe(im.base64) + '\r\n\r\n';
+            });
+
+            return sortie + '--' + limite + '--\r\n';
+        }
+
         let dernierEtat = null;
 
         /* Dans un document qui sort de la MSP, un effectif sous 5 devient
@@ -808,7 +1005,20 @@
                  + '</table>';
         }
 
-        function construireRapport(etat) {
+        /* Une image du rapport, ramenee a la largeur utile d'une page A4
+           avec 2 cm de marges : 17 cm, soit environ 640 points a l'ecran. */
+        function illustration(images, nom, legende) {
+            const im = (images || []).find(function (x) { return x.nom === nom; });
+            if (!im) return '';
+            const l = 640;
+            const h = Math.round(l * im.h / im.l);
+            return '<p style="margin:8pt 0 2pt;"><img src="' + nom + '" width="' + l
+                 + '" height="' + h + '" alt="' + legende + '"></p>'
+                 + '<p style="font-size:9pt;color:#666;margin:0 0 12pt;">'
+                 + legende + '</p>';
+        }
+
+        function construireRapport(etat, images) {
             const mois = Object.keys(etat.indicateurs || {}).sort();
 
             const t = { completes: 0, recommandes: 0, faits: 0, verif: 0, restants: 0 };
@@ -864,6 +1074,8 @@
 
             html += '<h2 style="font-size:13pt;color:#14303D;margin:16pt 0 2pt;">'
                   + '2. Qui fait le point</h2>'
+                  + illustration(images, 'graphique-ages.png',
+                        "Répartition des questionnaires complétés par tranche d'âge.")
                   + tableau(['Tranche d\'âge', 'Questionnaires', 'Part'],
                         TRANCHES.map(function (tr) {
                             return [tr[1], masquer(parTranche[tr[0]]),
@@ -875,7 +1087,9 @@
                                    return dosesParVaccin[b] - dosesParVaccin[a];
                                });
             html += '<h2 style="font-size:13pt;color:#14303D;margin:16pt 0 2pt;">'
-                  + '3. Vaccins administrés à la MSP</h2>';
+                  + '3. Vaccins administrés à la MSP</h2>'
+                  + illustration(images, 'graphique-doses.png',
+                        'Doses administrées sur la période, par vaccin.');
             html += vus.length
                   ? tableau(['Vaccin', 'Doses'],
                         vus.map(function (v) { return [v, masquer(dosesParVaccin[v])]; })
@@ -884,6 +1098,10 @@
 
             html += '<h2 style="font-size:13pt;color:#14303D;margin:16pt 0 2pt;">'
                   + '4. Mois par mois</h2>'
+                  + illustration(images, 'graphique-mois.png',
+                        "Vaccins restant à faire d'après les patients, et doses "
+                      + "administrées à la MSP, sur le même mois. Les deux séries se "
+                      + "lisent côte à côte, jamais l'une divisée par l'autre.")
                   + tableau(['Mois', 'Complétés', 'Moy. vaccins', 'Déjà faits',
                              'À vérifier', 'Restant à faire', 'Doses'],
                         mois.map(function (m) {
@@ -951,8 +1169,38 @@
             return html;
         }
 
+        function telecharger(contenu, type, nom) {
+            const blob = new Blob([contenu], { type: type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nom;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            // Libéré au tour suivant : révoquer tout de suite annulerait le
+            // téléchargement sur certains navigateurs.
+            setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        }
+
         function genererRapport() {
             if (!dernierEtat) return;
+
+            const bouton = document.getElementById('btn-rapport');
+            bouton.disabled = true;
+
+            /* Si la conversion des graphiques échoue, le rapport part sans
+               eux plutôt que pas du tout : un document en tableaux reste
+               utilisable, une erreur ne l'est pas. */
+            graphiquesDuRapport(dernierEtat)
+                .catch(function () { return null; })
+                .then(function (images) {
+                    ecrireRapport(images);
+                    bouton.disabled = false;
+                });
+        }
+
+        function ecrireRapport(images) {
 
             /* L'en-tête que Word attend : sans la déclaration d'espace de
                noms Office et le bloc WordDocument, il ouvre le fichier comme
@@ -969,29 +1217,24 @@
                       + ' body { font-family: Calibri, Arial, sans-serif;'
                       + ' font-size: 11pt; color: #222; }'
                       + ' h1, h2 { font-family: Calibri, Arial, sans-serif; }</style>'
-                      + '</head><body>' + construireRapport(dernierEtat)
+                      + '</head><body>' + construireRapport(dernierEtat, images)
                       + '</body></html>';
 
             const mois = Object.keys(dernierEtat.indicateurs || {}).sort();
             const nom = 'rapport-vaccins-msp'
                       + (mois.length ? '-' + mois[mois.length - 1] : '') + '.doc';
 
-            // Le préfixe BOM : sans lui, Word lit le fichier en ANSI et les
-            // accents deviennent illisibles.
-            const blob = new Blob(['﻿' + doc],
-                                  { type: 'application/msword;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
+            if (images && images.length) {
+                // MHTML : le document et ses images dans un même envoi.
+                telecharger(assemblerMhtml(doc, images),
+                            'application/msword;charset=utf-8', nom);
+                return;
+            }
 
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = nom;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            // Libéré au tour suivant : révoquer tout de suite annulerait le
-            // téléchargement sur certains navigateurs.
-            setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+            /* Sans images, du HTML simple suffit. Le préfixe BOM : sans lui,
+               Word lit le fichier en ANSI et les accents deviennent
+               illisibles. */
+            telecharger('﻿' + doc, 'application/msword;charset=utf-8', nom);
         }
 
         function afficher(etat) {
