@@ -206,8 +206,12 @@ $evenement = isset($data['e']) ? (string) $data['e'] : '';
 // Le code de l'équipe garde un traitement à part : sa vérification doit
 // répondre franchement, et surtout pas « ok », qui ouvrirait la page de
 // saisie à n'importe quoi.
-$codeFourni = isset($data['pin']) ? (string) $data['pin'] : '';
-$codeValide = $codeFourni !== '' && hash_equals((string) $config['pin'], $codeFourni);
+$codeFourni = isset($data['pin']) ? trim((string) $data['pin']) : '';
+// trim des deux cotes : config.php s'edite a la main, et une espace en fin
+// de valeur produirait un refus qu'aucun message n'expliquerait.
+$codeAttendu = trim((string) ($config['pin'] ?? ''));
+$codeValide = $codeFourni !== '' && $codeAttendu !== ''
+    && hash_equals($codeAttendu, $codeFourni);
 
 /* Trois secrets, trois usages, et c'est délibéré :
  *

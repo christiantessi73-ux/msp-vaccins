@@ -83,7 +83,9 @@
         .acte-message.ok { background: #e8f6ec; color: #1c6b31; }
         .acte-message.ko { background: #fdecea; color: #96281b; }
 
-        .acte-code { max-width: 200px; letter-spacing: 0.4em; text-align: center; }
+                /* Le code peut être un mot autant qu'une suite de chiffres :
+           pas d'interlettrage démesuré, et de la place pour le voir. */
+        .acte-code { max-width: 15rem; letter-spacing: 0.12em; }
 
         /* Les boutons clairs du questionnaire ne prennent leurs couleurs que
            sur le fond sombre de la barre du bilan. Ici, fond blanc : cette
@@ -127,8 +129,8 @@
             <div class="form-group">
                 <label for="code">Saisissez le code pour accéder à la saisie</label>
                 <input type="password" id="code" class="input-field acte-code"
-                       inputmode="numeric" autocomplete="off" maxlength="6"
-                       placeholder="••••" autofocus>
+                       autocomplete="off" maxlength="64"
+                       placeholder="votre code" autofocus>
             </div>
             <div class="cta-buttons" style="justify-content: flex-start; margin-top: 0;">
                 <button class="btn btn-valider" id="btn-deverrouiller">
