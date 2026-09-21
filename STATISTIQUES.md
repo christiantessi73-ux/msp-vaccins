@@ -380,9 +380,18 @@ archivé : plus rien ne lui écrit.
 
 ### 3. Le QR code de l'équipe
 
-Imprimer un QR vers `https://msp-vaccins.fr/acte.html` et l'afficher au
-comptoir et au cabinet, **hors de vue des patients**. Ce n'est pas le même que
-celui du questionnaire.
+Ouvrir `affiche-equipe.html` **depuis le dépôt**, en local, et l'imprimer :
+elle porte les deux QR codes de l'équipe, celui de la saisie des doses et celui
+des indicateurs. À afficher au comptoir et au cabinet, **hors de vue des
+patients**. Ce ne sont pas les QR codes du questionnaire.
+
+Cette affiche n'est **pas publiée sur le site**, au même titre que l'affiche des
+patients : elle figure dans la liste d'exclusions du miroir.
+
+> Ordre à respecter si un fichier déjà en ligne doit disparaître : **le retirer
+> du dépôt d'abord, l'exclure ensuite**. Dans lftp, une exclusion vaut aussi
+> pour la suppression — c'est ce qui protège `.well-known` — si bien qu'un
+> fichier publié puis exclu reste en ligne définitivement.
 
 > **Changer un secret** : modifier `config.php`, puis reporter la valeur là où
 > elle est attendue — `STATS_CLE` dans les deux pages pour `cle`, les
