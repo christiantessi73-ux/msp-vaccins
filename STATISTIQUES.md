@@ -125,7 +125,18 @@ Une ligne par mois, dans la feuille `Indicateurs` :
 Moyenne de vaccins par questionnaire = `Total vaccins recommandés` ÷
 `Questionnaires complétés`.
 
-Couverture déclarée = `Vaccins déjà faits` ÷ `Total vaccins recommandés`. Les
+Part des vaccins déjà faits = `Vaccins déjà faits` ÷ `Total vaccins
+recommandés`.
+
+> **Ne jamais appeler ce chiffre une « couverture vaccinale ».** En santé
+> publique, ce terme désigne la proportion d'une population vaccinée. Ici il
+> s'agit de la part des *vaccins recommandés par ce questionnaire* que les
+> répondants déclarent avoir déjà reçus : des vaccins et non des personnes,
+> les répondants et non la patientèle, du déclaratif et non un relevé de
+> carnet. Un lecteur pressé confondra les deux, et l'écart entre les deux sens
+> est énorme.
+
+Les
 trois dernières colonnes s'additionnent pour retomber sur `Total vaccins
 recommandés` : c'est le contrôle de cohérence de la feuille.
 

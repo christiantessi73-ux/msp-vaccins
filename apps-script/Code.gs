@@ -343,7 +343,7 @@ function installerTableauDeBord() {
     ['Questionnaires complétés',            "=SUM('" + src + "'!C2:C)",              '0'],
     ['Taux de complétion',                  "=IFERROR(B6/B5,\"\")",                  '0.0%'],
     ['Moyenne de vaccins par questionnaire', "=IFERROR(SUM('" + src + "'!H2:H)/B6,\"\")", '0.0'],
-    ['Couverture déclarée (vaccins déjà faits)', "=IFERROR(SUM('" + src + "'!I2:I)/SUM('" + src + "'!H2:H),\"\")", '0.0%'],
+    ["Vaccins déjà faits, d'après les patients", "=IFERROR(SUM('" + src + "'!I2:I)/SUM('" + src + "'!H2:H),\"\")", '0.0%'],
     ['Doses administrées à la MSP',          "=IFERROR(SUM('" + ACTES + "'!Q2:Q),0)",  '0']
   ];
 
@@ -407,7 +407,7 @@ function installerTableauDeBord() {
   f.getRange('A' + DEB).setValue('PAR MOIS').setFontWeight('bold').setFontColor('#1B7A8A');
 
   var entetes = ['Mois', 'Complétés', 'Taux de complétion', 'Moy. vaccins',
-                 '45 ans et plus', 'Couverture déclarée'];
+                 '45 ans et plus', 'Déjà faits'];
   f.getRange(DEB + 1, 1, 1, entetes.length).setValues([entetes])
    .setFontWeight('bold').setBackground('#eef4fb');
 
@@ -429,8 +429,12 @@ function installerTableauDeBord() {
   f.getRange('A' + (DEB + 204))
    .setValue("Rappel : ne pas publier une case comptant moins de 5 personnes — "
            + "à cette échelle, un chiffre redevient identifiant. "
-           + "« Couverture déclarée » est ce que les patients disent avoir fait, "
-           + "pas un relevé de carnet. « Vaccins administrés » est saisi à la main "
+           + "« Vaccins déjà faits » n'est pas une couverture vaccinale : c'est "
+           + "la part des vaccins recommandés par ce questionnaire que les "
+           + "répondants disent avoir déjà reçus — des vaccins et non des "
+           + "personnes, les répondants et non la patientèle, du déclaratif et "
+           + "non un relevé de carnet. Chiffre sous-estimé de surcroît : qui ne "
+           + "répond pas laisse tout en « à faire ». « Vaccins administrés » est saisi à la main "
            + "par l'équipe : c'est un plancher, jamais un total — le compte exact "
            + "sort de la facturation. Ces deux blocs se lisent côte à côte et ne se "
            + "divisent pas l'un par l'autre : rien ne relie une dose à un questionnaire. "

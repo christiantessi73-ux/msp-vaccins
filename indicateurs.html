@@ -306,7 +306,7 @@
                             <th>Complétion</th>
                             <th>Moy. vaccins</th>
                             <th>45 ans et +</th>
-                            <th>Couverture</th>
+                            <th>Déjà faits</th>
                             <th>Doses</th>
                         </tr></thead>
                         <tbody></tbody>
@@ -333,8 +333,18 @@
                 comptoir n'a pas forcément suivi un questionnaire, et rien dans le
                 dispositif ne permet de le savoir : c'est délibéré, et c'est ce qui
                 maintient ces compteurs anonymes. Les deux séries se lisent côte à côte.</p>
-                <p style="margin-bottom:0">La « couverture déclarée » est ce que les
-                patients disent avoir déjà fait, pas un relevé de carnet.</p>
+                <p><strong>« Vaccins déjà faits » n'est pas une couverture
+                vaccinale.</strong> Ce n'est pas la part de patients vaccinés dans
+                une population : c'est la part des <em>vaccins recommandés par ce
+                questionnaire</em> que les répondants disent avoir déjà reçus. Trois
+                différences qui comptent — des vaccins et non des personnes, les
+                répondants et non la patientèle, du déclaratif et non un relevé de
+                carnet.</p>
+                <p style="margin-bottom:0">Ce chiffre est de plus
+                <strong>sous-estimé</strong> : un patient qui ne touche aucun bouton
+                laisse tous ses vaccins en « à faire ». Le dénominateur mêle donc du
+                vrai non-fait et de la non-réponse, et c'est pourquoi « à vérifier »
+                reste compté à part.</p>
             </section>
 
         </div>
@@ -592,7 +602,8 @@
                 [nombre(t.completes), 'Questionnaires complétés'],
                 [pourcent(t.completes, t.commences), 'Taux de complétion'],
                 [decimal(t.recommandes, t.completes), 'Vaccins recommandés par questionnaire'],
-                [pourcent(t.faits, t.recommandes), 'Couverture déclarée'],
+                [pourcent(t.faits, t.recommandes),
+                 'Vaccins déjà faits, d\'après les patients'],
                 [nombre(totalDoses), 'Doses administrées à la MSP']
             ];
 
