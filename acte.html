@@ -188,7 +188,7 @@
            classeur. Le code de l'équipe est vérifié par le script, pas ici :
            le vérifier dans la page ne prouverait rien. */
 
-        const STATS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxm1ilbzrNRDX38Vr50M_Df5jQLKExNy9zT4E0aw6nYRhwF2DfBn-HrqziBDys-MdMd/exec";
+        const STATS_ENDPOINT = "/api.php";
         const STATS_CLE = "msp-84feb9a16b719652c1d0286d";
 
         /* Même liste et même ordre que VACCINES dans index.html et que VACCINS
@@ -305,10 +305,11 @@
             message.hidden = false;
         }
 
-        /* L'envoi attend la réponse du script, contrairement au questionnaire :
-           ici quelqu'un regarde l'écran et doit savoir si c'est compté. D'où
-           fetch et non sendBeacon, et redirect:'follow' - Apps Script répond
-           systématiquement par une redirection vers googleusercontent.com. */
+        /* L'envoi attend la réponse, contrairement au questionnaire : ici
+           quelqu'un regarde l'écran et doit savoir si c'est compté. D'où fetch
+           et non sendBeacon. Le « redirect: follow » est un reliquat sans
+           conséquence : l'endpoint étant sur notre domaine, il répond
+           directement, sans la redirection qu'imposait Apps Script. */
         btnEnvoyer.addEventListener('click', function () {
             if (!codeValide) return;   // le formulaire n'existe pas sans code
 

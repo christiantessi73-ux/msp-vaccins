@@ -375,7 +375,10 @@ try {
         /* Écriture complète : on repart de zéro plutôt que d'écrire par
            dessus, sinon un document plus court laisserait la queue de
            l'ancien et produirait du JSON invalide. */
-        $json = json_encode($etat, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $aEcrire = $etat;
+        if ($aEcrire['indicateurs'] === []) { $aEcrire['indicateurs'] = new stdClass(); }
+        if ($aEcrire['actes'] === []) { $aEcrire['actes'] = new stdClass(); }
+        $json = json_encode($aEcrire, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($json !== false) {
             ftruncate($fp, 0);
             rewind($fp);
@@ -392,6 +395,8 @@ if ($jeton === 'lire-ok') {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
     unset($etat['plafond']);   // un garde-fou interne, pas un indicateur
+    if ($etat['indicateurs'] === []) { $etat['indicateurs'] = new stdClass(); }
+    if ($etat['actes'] === []) { $etat['actes'] = new stdClass(); }
     echo json_encode($etat, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
