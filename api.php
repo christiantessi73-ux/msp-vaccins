@@ -205,7 +205,31 @@ $evenement = isset($data['e']) ? (string) $data['e'] : '';
 $codeFourni = isset($data['pin']) ? (string) $data['pin'] : '';
 $codeValide = $codeFourni !== '' && hash_equals((string) $config['pin'], $codeFourni);
 
-if (in_array($evenement, ['acte', 'code', 'lire'], true) && !$codeValide) {
+/* Trois secrets, trois usages, et c'est délibéré :
+ *
+ *   'pin'     le code du comptoir. Il circule entre les mains de l'équipe,
+ *             donc il ouvre la saisie et la consultation, rien d'autre.
+ *   'lecture' réservé au script de synchronisation, qui recopie les
+ *             compteurs dans le classeur. Lui confier le code du comptoir
+ *             reviendrait à le graver dans un script qu'on oublie.
+ *   'admin'   le remplacement complet des compteurs, le temps d'une
+ *             migration. Absent de config.php, l'import n'existe pas.
+ *
+ * Qui peut tout remplacer peut évidemment tout lire : 'admin' vaut aussi
+ * pour la lecture, ce qui évite un quatrième secret. L'inverse est faux.
+ */
+$secretLecture = isset($config['lecture']) ? (string) $config['lecture'] : '';
+$secretAdmin   = isset($config['admin']) ? (string) $config['admin'] : '';
+$fourni        = isset($data['secret']) ? (string) $data['secret'] : '';
+
+$peutLire = $codeValide
+    || ($secretLecture !== '' && $fourni !== '' && hash_equals($secretLecture, $fourni))
+    || ($secretAdmin !== '' && $fourni !== '' && hash_equals($secretAdmin, $fourni));
+
+if (in_array($evenement, ['acte', 'code'], true) && !$codeValide) {
+    repondre('code-refuse');
+}
+if ($evenement === 'lire' && !$peutLire) {
     repondre('code-refuse');
 }
 
@@ -217,12 +241,11 @@ if (in_array($evenement, ['acte', 'code', 'lire'], true) && !$codeValide) {
  * Absent de config.php, l'import n'existe pas. C'est l'état par défaut, et
  * le bon : on ne l'active que le temps d'une migration. */
 if ($evenement === 'import') {
-    $secret = isset($config['admin']) ? (string) $config['admin'] : '';
-    if ($secret === '') {
+    if ($secretAdmin === '') {
         repondre('import-desactive');
     }
-    $fourni = isset($data['admin']) ? (string) $data['admin'] : '';
-    if ($fourni === '' || !hash_equals($secret, $fourni)) {
+    $admin = isset($data['admin']) ? (string) $data['admin'] : '';
+    if ($admin === '' || !hash_equals($secretAdmin, $admin)) {
         repondre('admin-refuse');
     }
 }
