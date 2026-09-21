@@ -5,12 +5,45 @@ Ce que le questionnaire mesure, comment, et ce qu'il ne peut pas mesurer.
 ## Principe
 
 Le site ne stocke **aucune donnée individuelle**. Il incrémente des compteurs
-mensuels dans un Google Sheet. Il n'existe nulle part de ligne « un patient ».
+mensuels. Il n'existe nulle part de ligne « un patient ».
 
 Conséquence directe : ces compteurs ne sont pas des données personnelles, donc
-ni consentement, ni hébergeur certifié HDS, ni analyse d'impact. C'est ce qui
-permet d'utiliser un simple Google Sheet, ce qui serait exclu avec du détail
-par patient.
+ni consentement, ni hébergeur certifié HDS, ni analyse d'impact. Ce serait
+exclu avec du détail par patient.
+
+## Où vivent les chiffres
+
+**Une seule source de vérité : l'hébergement OVH.** Les pages appellent
+`api.php`, sur leur propre domaine, qui incrémente un fichier de compteurs.
+
+Ce fichier est rangé dans `/home/mspvacu/donnees-msp/`, **au-dessus de la
+racine web**, et c'est l'emplacement qui rend tout le reste possible :
+
+- le miroir de déploiement ne touche que `www/`, donc son `--delete` n'efface
+  pas les compteurs à chaque publication du site ;
+- rien de ce qui s'y trouve n'est téléchargeable par un visiteur.
+
+Un fichier de compteurs rangé dans `www/` serait détruit à la première mise à
+jour. C'est précisément ce qu'on cherchait à éviter.
+
+**Le Google Sheet est une vue.** Un script Apps Script lit `api.php` toutes les
+heures et réécrit les feuilles `Indicateurs` et `Actes` de fond en comble. On
+n'y saisit jamais rien : les deux endroits ne peuvent pas diverger puisque l'un
+est calculé depuis l'autre.
+
+Le classeur y gagne un second rôle : une **copie hors-site** des compteurs,
+avec l'historique de versions de Google Sheets par-dessus.
+
+### Les quatre secrets
+
+Ils vivent tous dans `/home/mspvacu/donnees-msp/config.php`, jamais dans Git.
+
+| Secret | Ce qu'il ouvre |
+|---|---|
+| `cle` | rien à lui seul. Partagée avec les pages, donc visible dans leur code source : c'est le navigateur du visiteur qui appelle `api.php` |
+| `pin` | la saisie des doses sur `acte.html`, et la lecture des compteurs. C'est le code du comptoir, il circule entre les mains de l'équipe |
+| `lecture` | la lecture seule. Réservé au script de synchronisation — le code du comptoir se change souvent, on oublierait de le reporter dans un script qui tourne tout seul |
+| `admin` | le remplacement complet des compteurs. **Absent de `config.php` en temps normal** : sans lui, aucune requête ne peut effacer un trimestre de relevés. On ne le remet que le temps d'une migration |
 
 ## Qui consulte quoi
 
@@ -26,11 +59,15 @@ Le classeur contient trois feuilles :
   complétés). Des colonnes, jamais de camembert : un secteur ne permet pas de
   comparer des valeurs proches, ce qui est précisément la question posée. Leurs
   deux couleurs restent distinguables en vision des couleurs déficiente.
-- **`Indicateurs`** — les compteurs bruts du questionnaire, alimentés par le
-  site. On n'y touche pas à la main.
-- **`Actes`** — les doses administrées, saisies par l'équipe depuis
-  `acte.html`. Une ligne par mois, une colonne par vaccin. On n'y touche pas
-  à la main non plus.
+- **`Indicateurs`** — les compteurs du questionnaire, **réécrits** à chaque
+  synchronisation depuis OVH. Toute saisie manuelle disparaît à l'heure
+  suivante.
+- **`Actes`** — les doses administrées, réécrites de la même façon. Une ligne
+  par mois, une colonne par vaccin.
+
+Le tableau de bord porte en `A3` la date du dernier relevé réussi. **C'est la
+première chose à regarder devant un chiffre qui surprend** : une
+synchronisation arrêtée laisse un tableau parfaitement crédible et périmé.
 
 ### Donner l'accès aux médecins de l'hôpital
 
@@ -101,9 +138,15 @@ l'équipe et accessible par un QR code affiché au comptoir et au cabinet.
 
 La page s'ouvre **verrouillée** : tant que le code de l'équipe n'a pas été
 validé, le formulaire n'est pas affiché. Le code n'est pas comparé dans la
-page — il est envoyé au script, qui répond « ok » ou « code-refuse ». C'est ce
-qui permet de ne l'écrire nulle part dans une page publique : elle ne le
+page — il est envoyé à `api.php`, qui répond `code-ok` ou `code-refuse`. C'est
+ce qui permet de ne l'écrire nulle part dans une page publique : elle ne le
 connaît pas, elle le demande.
+
+Chaque événement a son propre jeton de réponse, et c'est délibéré : une
+version antérieure du serveur ne connaît pas la branche, tombe au bout de la
+fonction et répondrait « ok » à tout. La page exige le jeton exact, ce qui
+transforme un déploiement à moitié fait en erreur franche à l'écran plutôt
+qu'en saisie perdue en silence.
 
 Une fois déverrouillé, le soignant compte les doses avec les boutons − / + et
 valide. **Les compteurs repartent à zéro dès que l'enregistrement est
@@ -140,16 +183,10 @@ tous, il ne porte aucune trace du bilan d'un patient. C'est délibéré — c'es
 ce qui maintient les deux feuilles anonymes. Les deux séries se lisent côte à
 côte, jamais en rapport.
 
-Le code de l'équipe (`PIN_SOIGNANT`, dans `Code.gs` **uniquement**) a le même
-statut que la clé partagée : il évite la fausse manœuvre — un patient qui
-scanne l'affiche par curiosité — pas quelqu'un de déterminé. Il n'a rien à
-protéger : `acte.html` ne sait qu'ajouter des doses, elle ne lit jamais le
-classeur.
-
-Chaque tentative de code compte dans `PLAFOND_PAR_HEURE`, ce qui rend une
-recherche exhaustive impraticable. Contrepartie assumée : quelqu'un d'acharné
-peut saturer le plafond et bloquer les comptages pendant une heure. Comme
-partout ici, le pire scénario est un comptage perdu, jamais une fuite.
+Le code de l'équipe (`pin`, dans `config.php` **uniquement**) a le même statut
+que la clé partagée : il évite la fausse manœuvre — un patient qui scanne
+l'affiche par curiosité — pas quelqu'un de déterminé. Il n'a rien à protéger :
+`acte.html` ne sait qu'ajouter des doses.
 
 ## Deux règles à ne pas perdre de vue
 
@@ -202,65 +239,105 @@ payer pour s'en tenir à un Google Sheet.
 
 ## Installation
 
-1. Créer un Google Sheet vierge.
-2. *Extensions → Apps Script*, y coller `apps-script/Code.gs`, enregistrer.
-3. *Déployer → Nouveau déploiement → Application web*, exécuter en tant que
-   soi-même, accès « Tout le monde ». Copier l'URL `/exec`.
-4. Dans `index.html`, renseigner `const STATS_ENDPOINT = "…/exec";`
-5. Vérifier que `const STATS_CLE` (dans `index.html`) et `var CLE` (dans
-   `Code.gs`) portent **exactement la même valeur** : sans cela le script
-   refuse tout et les compteurs restent à zéro.
-6. Reporter la même URL `/exec` et la même clé dans `acte.html`
-   (`STATS_ENDPOINT` et `STATS_CLE`).
-7. Choisir le code de l'équipe : `var PIN_SOIGNANT` dans `Code.gs`, et nulle
-   part ailleurs. `acte.html` ne le connaît pas : elle le fait valider par le
-   script à chaque déverrouillage.
-8. Vérifier en lançant `testerInstallation()` depuis l'éditeur Apps Script :
-   elle crée la ligne du mois dans `Indicateurs` **et** dans `Actes`, installe
-   le `Tableau de bord`, et contrôle qu'un code d'équipe erroné est bien
-   refusé. Le journal le dit explicitement.
-9. Partager le classeur en lecture avec les médecins (voir plus haut).
-10. Imprimer un QR code pointant vers `https://msp-vaccins.fr/acte.html` et
-    l'afficher au comptoir et au cabinet, hors de vue des patients.
+### 1. Sur OVH
 
-> **Changer la clé plus tard** : modifier les deux fichiers, publier le site,
-> *puis* redéployer le script (*Gérer les déploiements → Modifier → Nouvelle
-> version*). Dans cet ordre, aucun comptage n'est perdu ; dans l'autre, le
-> script refuse les visiteurs tant que le site n'est pas à jour.
+Le miroir de déploiement publie `api.php` tout seul. Reste la configuration,
+à déposer **à la main** en `/home/mspvacu/donnees-msp/config.php` — au-dessus
+de `www/`, jamais dedans :
+
+```php
+<?php
+return [
+    'cle'     => 'msp-84feb9a16b719652c1d0286d',  // identique à STATS_CLE
+    'pin'     => '…',                              // le code du comptoir
+    'lecture' => '…',                              // pour la synchronisation
+];
+```
+
+Vérifier depuis n'importe où que le dossier reste invisible :
+
+```
+curl -o /dev/null -w "%{http_code}\n" https://msp-vaccins.fr/donnees-msp/config.php
+```
+
+Un `404` est le résultat attendu. Autre chose signifie que le dossier est dans
+`www/` et doit être déplacé sans attendre.
+
+### 2. Le script de synchronisation
+
+1. *Extensions → Apps Script*, y coller `apps-script/Code.gs`, enregistrer.
+2. *Paramètres du projet → Propriétés du script*, ajouter les trois valeurs.
+   Elles ne sont pas dans le fichier, donc pas dans Git :
+
+   | Propriété | Valeur |
+   |---|---|
+   | `API` | `https://msp-vaccins.fr/api.php` |
+   | `CLE` | la valeur de `cle` dans `config.php` |
+   | `LECTURE` | la valeur de `lecture` dans `config.php` |
+
+3. Lancer `testerSynchronisation()` : elle vérifie l'accès, recopie les
+   compteurs et installe le tableau de bord.
+4. Lancer `installerSynchronisation()` : elle pose le déclencheur horaire.
+5. Partager le classeur en lecture avec les médecins (voir plus haut).
+
+Il n'y a **plus de déploiement en application web**. Ce script n'est appelé par
+personne, c'est lui qui appelle. L'ancien déploiement `/exec` peut être
+archivé : plus rien ne lui écrit.
+
+### 3. Le QR code de l'équipe
+
+Imprimer un QR vers `https://msp-vaccins.fr/acte.html` et l'afficher au
+comptoir et au cabinet, **hors de vue des patients**. Ce n'est pas le même que
+celui du questionnaire.
+
+> **Changer un secret** : modifier `config.php`, puis reporter la valeur là où
+> elle est attendue — `STATS_CLE` dans les deux pages pour `cle`, les
+> propriétés du script pour `lecture`. Le code du comptoir, lui, ne se recopie
+> nulle part : il n'existe que dans `config.php`.
 
 Si le tableau de bord doit être remis à neuf, relancer `installerTableauDeBord()`
-depuis l'éditeur : la feuille est recréée, les compteurs ne bougent pas.
+depuis l'éditeur : la feuille est recréée, les compteurs ne bougent pas — ils
+ne sont pas là.
 
-> **Ajouter une colonne plus tard** : le script resynchronise les en-têtes à
-> chaque écriture, donc une feuille déjà remplie reçoit les nouvelles colonnes
-> toute seule, vides pour les mois passés. En revanche, ne jamais déplacer ni
-> renommer une colonne à la main : les compteurs se repèrent par le libellé de
-> l'en-tête, et un libellé modifié fait cesser le comptage en silence.
->
-> Même règle pour la liste des vaccins : `VACCINES` dans `index.html`,
-> `VACCINS` dans `Code.gs` et `VACCINS` dans `acte.html` doivent rester
-> identiques, mêmes noms et même ordre.
-
-Tant que `STATS_ENDPOINT` est vide, **rien n'est envoyé** — les événements
-s'affichent seulement dans la console du navigateur.
+> **Ajouter une colonne plus tard** : la liste des vaccins doit rester
+> identique et dans le même ordre aux quatre endroits qui la portent —
+> `VACCINES` dans `index.html`, `VACCINS` dans `acte.html`, `VACCINS` dans
+> `api.php` et `VACCINS` dans `Code.gs`. Un nom qui diverge se compterait dans
+> la colonne d'un autre.
 
 ## Limites connues
 
-L'URL du webhook et la clé partagée sont toutes deux visibles dans le code
-source de la page — elles doivent l'être, c'est le navigateur du visiteur qui
-appelle le script. La clé écarte les robots et les appels au hasard, pas
-quelqu'un qui lit la page. C'est pourquoi un second garde-fou existe : le
-script ignore tout ce qui dépasse `PLAFOND_PAR_HEURE` appels dans l'heure
-(200 par défaut, très au-dessus de la fréquentation réelle du comptoir). Le
-pire scénario reste donc des compteurs gonflés, jamais une fuite : le script
-ne sait qu'incrémenter, il n'a aucune fonction de lecture (`doGet` n'existe
-pas). Si un écart suspect apparaît, comparer avec la fréquentation du
-comptoir.
+**La clé est publique, et doit l'être.** C'est le navigateur du visiteur qui
+appelle `api.php` : la clé est forcément dans le code source des pages. Elle
+écarte les robots et les appels au hasard, pas quelqu'un qui lit la page.
 
-L'événement de fin est envoyé quand l'onglet se ferme ou passe en arrière-plan.
-Un navigateur tué brutalement peut le perdre : `Questionnaires commencés` est
-donc toujours supérieur ou égal à `Questionnaires complétés`, l'écart n'est pas
-uniquement de l'abandon.
+D'où le second garde-fou : `api.php` ignore tout ce qui dépasse
+`PLAFOND_PAR_HEURE` appels dans l'heure — 200 par défaut, très au-dessus de la
+fréquentation réelle du comptoir. Les tentatives de code y sont comptées, ce
+qui rend une recherche exhaustive impraticable.
+
+Le pire scénario reste donc des compteurs gonflés, jamais une fuite. Contre­partie
+assumée : quelqu'un d'acharné peut saturer le plafond et bloquer les comptages
+pendant une heure. Si un écart suspect apparaît, comparer avec la fréquentation
+du comptoir.
+
+**Le questionnaire peut perdre son événement de fin.** Il part quand l'onglet
+se ferme ou passe en arrière-plan ; un navigateur tué brutalement l'emporte.
+`Questionnaires commencés` est donc toujours supérieur ou égal à
+`Questionnaires complétés`, et l'écart n'est pas uniquement de l'abandon.
+
+**Le classeur peut être en retard, jamais faux.** La synchronisation passe
+toutes les heures. Si elle échoue — OVH injoignable, secret mal recopié — elle
+lève et **ne touche pas au classeur** : celui-ci garde les chiffres du dernier
+relevé réussi, ce qui vaut mieux qu'un tableau de bord vidé par une coupure
+passagère. La date en `A3` du tableau de bord est ce qui rend ce retard
+visible.
+
+**Les doses administrées sont un plancher.** Tout repose sur le fait qu'un
+soignant pense à saisir, un jour d'affluence. Une dose non saisie est perdue
+pour le rapport. Surveiller le taux de saisie les premières semaines en le
+comparant à la facturation, et écrire dans le rapport qu'il s'agit d'un
+minimum.
 
 ## Avant de figer le dispositif
 

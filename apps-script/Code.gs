@@ -1,58 +1,39 @@
 /**
- * Indicateurs anonymes — Questionnaire de recommandations vaccinales
- * MSP Route de Vienne
+ * Synchronisation des compteurs — MSP Route de Vienne
  *
- * Ce script n'enregistre AUCUNE donnée individuelle. Il incrémente des
- * compteurs mensuels : une ligne par mois, jamais une ligne par visite.
- * Aucun identifiant, aucun horodatage fin, aucun détail de situation
- * particulière ne lui parvient — voir le commentaire dans index.html.
+ * Ce script ne compte plus rien. Les compteurs vivent désormais sur
+ * l'hébergement OVH, alimentés par api.php : une seule source de vérité,
+ * que les pages du site appellent sur leur propre domaine.
+ *
+ * Son rôle est de recopier ces compteurs dans le classeur, toutes les
+ * heures. Les feuilles « Indicateurs » et « Actes » deviennent donc des
+ * vues, réécrites intégralement à chaque passage — jamais saisies à la
+ * main. C'est ce qui garantit que les deux endroits ne peuvent pas
+ * diverger : l'un est calculé depuis l'autre.
+ *
+ * Le classeur y gagne le second rôle que la MSP cherchait au départ : une
+ * copie hors-site des compteurs, avec l'historique de versions de Google
+ * Sheets par-dessus.
  *
  * ── Installation ────────────────────────────────────────────────────────
- * 1. Créer un Google Sheet vierge (il servira de tableau de bord).
- * 2. Extensions → Apps Script, coller ce fichier, enregistrer.
- * 3. Déployer → Nouveau déploiement → type « Application web »
- *      · Exécuter en tant que : Moi
- *      · Qui a accès          : Tout le monde
- * 4. Copier l'URL /exec proposée.
- * 5. Dans index.html, renseigner :  const STATS_ENDPOINT = "…/exec";
+ * 1. Paramètres du projet → Propriétés du script, ajouter trois
+ *    propriétés. Elles ne sont pas dans ce fichier, donc pas dans Git :
  *
- * Après toute modification du script, il faut redéployer (Gérer les
- * déploiements → Modifier → Nouvelle version), sinon l'URL sert l'ancien code.
+ *      API      https://msp-vaccins.fr/api.php
+ *      CLE      la valeur de 'cle' dans config.php
+ *      LECTURE  la valeur de 'lecture' dans config.php
+ *
+ * 2. Lancer testerSynchronisation() une fois : elle vérifie l'accès,
+ *    recopie les compteurs et installe le tableau de bord.
+ * 3. Lancer installerSynchronisation() : elle pose le déclencheur horaire.
+ *
+ * Il n'y a plus de déploiement en application web. Ce script n'est appelé
+ * par personne — c'est lui qui appelle. L'ancien déploiement /exec peut
+ * être archivé : plus rien ne lui écrit.
  */
-
-/* ── Protection des écritures ────────────────────────────────────────────
- * L'adresse /exec est forcément publique : c'est le navigateur de chaque
- * visiteur qui l'appelle. Sans garde-fou, n'importe qui pourrait envoyer de
- * faux comptages et fausser le rapport d'activité.
- *
- * Deux barrières, volontairement modestes :
- *
- *  1. Une clé partagée, à recopier à l'identique dans index.html
- *     (const STATS_CLE). Elle écarte les robots et les appels au hasard.
- *     Elle ne cache rien à qui lit le code de la page : c'est un verrou de
- *     porte de jardin, pas un coffre - et il n'y a rien à voler ici, le
- *     script ne sait que compter.
- *
- *  2. Un plafond horaire. Même en connaissant la clé, on ne peut pas gonfler
- *     les compteurs plus vite que le comptoir ne reçoit de patients.
- *
- * Après modification de la clé : redéployer (Nouvelle version), sinon l'URL
- * continue de servir l'ancienne.
- */
-var CLE = 'msp-84feb9a16b719652c1d0286d';
-var PLAFOND_PAR_HEURE = 200;
-
-/* Code de l'équipe, saisi sur acte.html avant d'enregistrer des vaccins
- * administrés. Même statut que la clé : il écarte le passant, pas quelqu'un
- * qui lit le code de la page. Il n'a rien à protéger non plus — le script ne
- * sait qu'incrémenter. Il évite surtout la fausse manœuvre : un patient qui
- * scanne l'affiche par curiosité ne gonflera pas les compteurs d'actes.
- * À changer : modifier ici ET dans acte.html, puis redéployer. */
-var PIN_SOIGNANT = '2431';
 
 var FEUILLE = 'Indicateurs';
 var FEUILLE_ACTES = 'Actes';
-
 var COLONNES = [
   'Mois',
   'Questionnaires commencés',
@@ -100,296 +81,167 @@ function colonnesActes() {
   return ['Mois'].concat(VACCINS).concat(['Total actes']);
 }
 
-var TRANCHES = {
-  '11-24': '11-24 ans',
-  '25-44': '25-44 ans',
-  '45-64': '45-64 ans',
-  '65+': '65 ans et plus'
-};
-
-function doPost(e) {
-  // Lecture et contrôles d'abord : un appel douteux ne doit pas même
-  // immobiliser le verrou que se partagent les vrais visiteurs.
-  var data;
-  try {
-    data = JSON.parse(e.postData.contents);
-  } catch (err) {
-    return ContentService.createTextOutput('illisible');
-  }
-
-  if (data.k !== CLE) return ContentService.createTextOutput('refuse');
-
-  // Un code d'équipe erroné reçoit une réponse franche : acte.html l'affiche
-  // au soignant, qui saurait sinon qu'il a saisi sans savoir que rien n'a été
-  // compté.
-  if (data.e === 'acte' && data.pin !== PIN_SOIGNANT) {
-    return ContentService.createTextOutput('code-refuse');
-  }
-  // « code » est traité plus bas, après le plafond : une tentative de code
-  // doit être comptée, sans quoi le code se chercherait sans limite.
-
-  if (plafondAtteint()) return ContentService.createTextOutput('plafond');
-
-  /* Vérification du code seule : acte.html s'en sert pour décider d'afficher
-   * le formulaire ou non. Aucune écriture, aucun verrou.
-   *
-   * Pourquoi passer par le script plutôt que comparer dans la page : un code
-   * recopié dans acte.html serait lisible par quiconque affiche la source, et
-   * la page est publique. Ici, elle ne connaît jamais le code — elle demande.
-   *
-   * La tentative est comptée dans le plafond horaire, et c'est voulu : c'est
-   * ce qui rend une recherche exhaustive du code impraticable. Contrepartie
-   * assumée — quelqu'un d'acharné peut saturer le plafond et bloquer les
-   * compteurs pour l'heure. Comme ailleurs ici, le pire scénario est un
-   * comptage perdu, jamais une fuite.
-   */
-  if (data.e === 'code') {
-    return ContentService.createTextOutput(
-      data.pin === PIN_SOIGNANT ? 'code-ok' : 'code-refuse');
-  }
-
-  var verrou = LockService.getScriptLock();
-  // Deux patients peuvent finir en même temps : sans verrou, un incrément est perdu
-  try {
-    verrou.waitLock(20000);
-  } catch (err) {
-    return ContentService.createTextOutput('occupe');
-  }
-
-  /* Chaque événement répond par un jeton qui lui est propre, et une version
-   * antérieure du script ne peut pas le produire : elle ne connaît pas la
-   * branche, tombe au bout de la fonction et répondait « ok » à tout.
-   *
-   * C'est ce qui rendait la fenêtre de déploiement dangereuse — site publié
-   * avant le script redéployé. acte.html se serait déverrouillée avec
-   * n'importe quel code, et aurait annoncé « doses enregistrées » sans que
-   * rien ne soit compté. Un jeton par événement transforme ce silence en
-   * erreur franche à l'écran.
-   */
-  var reponse = 'inconnu';
-
-  try {
-    var feuille = obtenirFeuille();
-    var ligne = obtenirLigneDuMois(feuille);
-
-    if (data.e === 'debut') {
-      incrementer(feuille, ligne, 'Questionnaires commencés', 1);
-      reponse = 'debut-ok';
-
-    } else if (data.e === 'fin') {
-      if (data.complet) {
-        incrementer(feuille, ligne, 'Questionnaires complétés', 1);
-
-        var colonneTranche = TRANCHES[data.tranche];
-        if (colonneTranche) incrementer(feuille, ligne, colonneTranche, 1);
-
-        var nb = Number(data.nb);
-        if (nb > 0 && nb < 100) incrementer(feuille, ligne, 'Total vaccins recommandés', nb);
-
-        // Ventilation déclarative. Chaque part est bornée par le total : un
-        // paquet incohérent ne doit pas pouvoir fausser la somme.
-        ventiler(feuille, ligne, 'Vaccins déjà faits (déclarés)', data.faits, nb);
-        ventiler(feuille, ligne, 'Vaccins à vérifier', data.verif, nb);
-        ventiler(feuille, ligne, 'Vaccins restant à faire', data.restants, nb);
-      }
-      reponse = 'fin-ok';
-    } else if (data.e === 'pdf') {
-      incrementer(feuille, ligne, 'Impressions PDF', 1);
-      reponse = 'pdf-ok';
-
-    } else if (data.e === 'acte') {
-      // Vaccins administrés, saisis par l'équipe depuis acte.html.
-      enregistrerActes(data.v);
-      reponse = 'acte-ok';
-    }
-  } catch (err) {
-    console.error(err);
-    reponse = 'erreur';
-  } finally {
-    verrou.releaseLock();
-  }
-
-  return ContentService.createTextOutput(reponse);
-}
-
-/**
- * Compte les appels de l'heure en cours et dit si le plafond est franchi.
- *
- * Le compteur vit dans le cache du script, pas dans la feuille : il expire
- * tout seul et ne laisse aucune trace dans le classeur. Un appel perdu de
- * temps en temps (le cache n'est pas transactionnel) est sans conséquence
- * pour un garde-fou.
- */
-function plafondAtteint() {
-  var cache = CacheService.getScriptCache();
-  var heure = Utilities.formatDate(new Date(), 'Europe/Paris', 'yyyy-MM-dd-HH');
-  var compte = Number(cache.get(heure) || 0) + 1;
-  cache.put(heure, String(compte), 3900);  // un peu plus d'une heure
-  return compte > PLAFOND_PAR_HEURE;
-}
-
-/**
- * Une feuille de compteurs, créée avec ses en-têtes au premier appel.
- *
- * Les en-têtes sont *resynchronisés* à chaque fois, et c'est le point
- * important : quand on ajoute une colonne au script, la feuille existe déjà,
- * et sans cette étape elle garderait ses anciens en-têtes. incrementer()
- * repérant les colonnes par leur position dans la liste, il écrirait alors
- * dans la cellule d'à côté — des compteurs faux, et rien pour le signaler.
- *
- * On n'ajoute que les colonnes manquantes, à droite : les mois déjà comptés
- * ne bougent pas, ils restent simplement vides sur les nouvelles colonnes.
- */
-function obtenirFeuilleNommee(nom, colonnes) {
-  var classeur = SpreadsheetApp.getActiveSpreadsheet();
-  var feuille = classeur.getSheetByName(nom);
-
-  if (!feuille) {
-    feuille = classeur.insertSheet(nom);
-    feuille.getRange(1, 1, 1, colonnes.length).setValues([colonnes]).setFontWeight('bold');
-    feuille.setFrozenRows(1);
-    return feuille;
-  }
-
-  if (feuille.getLastColumn() < colonnes.length) {
-    if (feuille.getMaxColumns() < colonnes.length) {
-      feuille.insertColumnsAfter(feuille.getMaxColumns(),
-                                 colonnes.length - feuille.getMaxColumns());
-    }
-    feuille.getRange(1, 1, 1, colonnes.length).setValues([colonnes]).setFontWeight('bold');
-  }
-  return feuille;
-}
-
-function obtenirFeuille() {
-  return obtenirFeuilleNommee(FEUILLE, COLONNES);
-}
-
-function obtenirFeuilleActes() {
-  return obtenirFeuilleNommee(FEUILLE_ACTES, colonnesActes());
-}
-
-/** La ligne du mois courant, créée à zéro si le mois vient de commencer. */
-/**
- * Lit une cellule « Mois » quel que soit son type.
- *
- * Sheets convertit « 2026-09 » en date à l'écriture : comparer le texte brut
- * échouait toujours, et une ligne était créée à chaque envoi au lieu d'une
- * par mois.
- */
-function cleMois(valeur) {
-  if (valeur instanceof Date) {
-    return Utilities.formatDate(valeur, 'Europe/Paris', 'yyyy-MM');
-  }
-  return String(valeur).trim().slice(0, 7);
-}
-
-function obtenirLigneDuMois(feuille) {
-  var mois = Utilities.formatDate(new Date(), 'Europe/Paris', 'yyyy-MM');
-  var dernier = feuille.getLastRow();
-
-  if (dernier >= 2) {
-    var moisConnus = feuille.getRange(2, 1, dernier - 1, 1).getValues();
-    for (var i = 0; i < moisConnus.length; i++) {
-      if (cleMois(moisConnus[i][0]) === mois) return i + 2;
-    }
-  }
-
-  var largeur = Math.max(feuille.getLastColumn(), 1);
-  var ligne = dernier + 1;
-  var vide = [];
-  for (var c = 0; c < largeur; c++) vide.push(0);
-  vide[0] = mois;
-  // Colonne forcée en texte, sinon Sheets retransforme « 2026-09 » en date.
-  feuille.getRange(ligne, 1).setNumberFormat('@');
-  feuille.getRange(ligne, 1, 1, largeur).setValues([vide]);
-  return ligne;
-}
-
-/**
- * Incrémente une colonne repérée par son nom, lu dans la ligne d'en-tête.
- *
- * On lit l'en-tête plutôt que de se fier à la liste du script : si les deux
- * ont divergé (feuille retouchée à la main, colonne déplacée), mieux vaut ne
- * rien compter que compter à côté.
- */
-function incrementer(feuille, ligne, nomColonne, valeur) {
-  var entetes = feuille.getRange(1, 1, 1, feuille.getLastColumn()).getValues()[0];
-  var colonne = entetes.indexOf(nomColonne) + 1;
-  if (colonne < 1) return;
-  var cellule = feuille.getRange(ligne, colonne);
-  cellule.setValue((Number(cellule.getValue()) || 0) + valeur);
-}
-
-/**
- * Une part d'un total, bornée par ce total.
- *
- * La ventilation vient du navigateur : rien n'empêche un paquet bricolé
- * d'annoncer « 4 recommandés, dont 900 faits ». Le plafond garde la feuille
- * cohérente — faits + à vérifier + restants ne peut pas dépasser le total.
- */
-function ventiler(feuille, ligne, nomColonne, part, total) {
-  var n = Number(part);
-  if (!(n > 0) || !(total > 0)) return;
-  incrementer(feuille, ligne, nomColonne, Math.min(n, total));
-}
-
-/**
- * Les vaccins administrés, saisis par l'équipe depuis acte.html.
- *
- * Reçoit un objet { 'Grippe': 2, 'DTPc': 1 } : des noms de vaccins et des
- * quantités, sans âge, sans genre, sans date plus fine que le mois. C'est
- * délibéré et c'est la limite à ne pas franchir : croiser le vaccin avec la
- * tranche d'âge dans une seule officine produirait des cases à 1 ou 2, et un
- * chiffre à 1 redevient quelqu'un.
- */
-function enregistrerActes(vaccins) {
-  if (!vaccins || typeof vaccins !== 'object') return;
-
-  var feuille = obtenirFeuilleActes();
-  var ligne = obtenirLigneDuMois(feuille);
-  var total = 0;
-
-  for (var i = 0; i < VACCINS.length; i++) {
-    var nom = VACCINS[i];
-    var n = Number(vaccins[nom]);
-    // Une saisie au comptoir dépasse rarement quelques doses : le plafond
-    // écarte le doigt resté appuyé sur « + » comme le paquet fantaisiste.
-    if (n > 0 && n <= 50) {
-      incrementer(feuille, ligne, nom, n);
-      total += n;
-    }
-  }
-
-  if (total > 0) incrementer(feuille, ligne, 'Total actes', total);
-}
-
-/**
- * À lancer une fois depuis l'éditeur pour vérifier l'installation :
- * elle simule un questionnaire complet et doit créer la ligne du mois.
- */
-function testerInstallation() {
-  var envoyer = function (paquet) {
-    paquet.k = CLE;
-    return doPost({ postData: { contents: JSON.stringify(paquet) } }).getContent();
+/** Les trois propriétés de script, avec un message clair si l'une manque. */
+function config() {
+  var p = PropertiesService.getScriptProperties();
+  var c = {
+    api: p.getProperty('API'),
+    cle: p.getProperty('CLE'),
+    lecture: p.getProperty('LECTURE')
   };
+  if (!c.api || !c.cle || !c.lecture) {
+    throw new Error('Propriétés du script incomplètes : API, CLE et LECTURE '
+                  + 'doivent être renseignées dans Paramètres du projet.');
+  }
+  return c;
+}
 
-  envoyer({ e: 'debut' });
-  envoyer({ e: 'fin', complet: 1, tranche: '45-64', nb: 4,
-            faits: 1, verif: 1, restants: 2 });
-  envoyer({ e: 'pdf' });
-  envoyer({ e: 'acte', pin: PIN_SOIGNANT, v: { 'Grippe': 2, 'DTPc': 1 } });
+/**
+ * Va chercher les compteurs sur OVH.
+ *
+ * Lève plutôt que de renvoyer un document vide : un appel raté ne doit
+ * surtout pas être confondu avec « il n'y a rien à compter », sans quoi la
+ * synchronisation viderait le classeur à la première coupure réseau.
+ */
+function lireCompteurs() {
+  var c = config();
 
-  // Un code faux doit être refusé, pas silencieusement accepté : sans cette
-  // vérification, une erreur de recopie entre acte.html et PIN_SOIGNANT ne se
-  // verrait qu'au moment du rapport, des semaines plus tard.
-  var refus = envoyer({ e: 'acte', pin: '0000', v: { 'Grippe': 99 } });
+  var reponse = UrlFetchApp.fetch(c.api, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({ e: 'lire', k: c.cle, secret: c.lecture }),
+    muteHttpExceptions: true
+  });
 
+  var code = reponse.getResponseCode();
+  var texte = reponse.getContentText();
+
+  if (code !== 200) {
+    throw new Error('api.php a répondu ' + code + ' : ' + texte.slice(0, 200));
+  }
+
+  var etat;
+  try {
+    etat = JSON.parse(texte);
+  } catch (err) {
+    // Une réponse non-JSON est un jeton de refus (code-refuse, plafond…).
+    // Le citer tel quel évite de chercher une panne là où il n'y a qu'un
+    // secret mal recopié.
+    throw new Error('Réponse inattendue de api.php : ' + texte.slice(0, 120));
+  }
+
+  if (!etat || typeof etat.indicateurs !== 'object' || typeof etat.actes !== 'object') {
+    throw new Error('Document de compteurs incomplet — synchronisation annulée.');
+  }
+
+  return etat;
+}
+
+/** Les mois présents, du plus ancien au plus récent. */
+function moisTries(objet) {
+  return Object.keys(objet || {}).filter(function (m) {
+    return /^[0-9]{4}-[0-9]{2}$/.test(m);
+  }).sort();
+}
+
+/**
+ * Réécrit une feuille de A1 au coin bas-droit.
+ *
+ * On efface avant d'écrire : un mois qui disparaîtrait de la source ne doit
+ * pas survivre dans le classeur, sinon la vue cesserait d'être une vue.
+ */
+function reecrire(nom, colonnes, lignes) {
+  var classeur = SpreadsheetApp.getActiveSpreadsheet();
+  var f = classeur.getSheetByName(nom) || classeur.insertSheet(nom);
+
+  f.clearContents();
+  f.getRange(1, 1, 1, colonnes.length).setValues([colonnes]).setFontWeight('bold');
+  f.setFrozenRows(1);
+
+  if (lignes.length > 0) {
+    // Colonne des mois en texte, sinon Sheets retransforme « 2026-09 » en date.
+    f.getRange(2, 1, lignes.length, 1).setNumberFormat('@');
+    f.getRange(2, 1, lignes.length, colonnes.length).setValues(lignes);
+  }
+  return f;
+}
+
+/**
+ * Le travail principal, appelé par le déclencheur horaire.
+ *
+ * Tout se joue dans l'ordre : on lit d'abord, on n'écrit qu'ensuite. Si la
+ * lecture échoue, lireCompteurs() lève et le classeur n'est pas touché — il
+ * garde les chiffres de la dernière synchronisation réussie, ce qui vaut
+ * infiniment mieux qu'un tableau de bord vidé par une coupure passagère.
+ */
+function synchroniser() {
+  var etat = lireCompteurs();
+
+  var lignesInd = moisTries(etat.indicateurs).map(function (m) {
+    var l = etat.indicateurs[m] || {};
+    var n = function (k) { return Number(l[k]) || 0; };
+    return [m, n('commences'), n('completes'), n('11-24'), n('25-44'),
+            n('45-64'), n('65+'), n('recommandes'), n('pdf'),
+            n('faits'), n('verif'), n('restants')];
+  });
+
+  var lignesActes = moisTries(etat.actes).map(function (m) {
+    var doses = etat.actes[m] || {};
+    var total = 0;
+    var ligne = [m];
+    VACCINS.forEach(function (nom) {
+      var v = Number(doses[nom]) || 0;
+      ligne.push(v);
+      total += v;
+    });
+    ligne.push(total);
+    return ligne;
+  });
+
+  reecrire(FEUILLE, COLONNES, lignesInd);
+  reecrire(FEUILLE_ACTES, colonnesActes(), lignesActes);
+
+  // L'horodatage rend une panne visible. Sans lui, une synchronisation
+  // arrêtée laisse un tableau de bord parfaitement crédible et périmé.
+  PropertiesService.getScriptProperties()
+    .setProperty('DERNIERE_SYNCHRO',
+      Utilities.formatDate(new Date(), 'Europe/Paris', "dd/MM/yyyy 'à' HH:mm"));
+
+  marquerSynchro();
+  protegerCompteurs();
+
+  return lignesInd.length + ' mois de compteurs, '
+       + lignesActes.length + ' mois de doses.';
+}
+
+/** Reporte l'horodatage sur le tableau de bord, s'il existe. */
+function marquerSynchro() {
+  var f = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tableau de bord');
+  if (!f) return;
+  var quand = PropertiesService.getScriptProperties().getProperty('DERNIERE_SYNCHRO');
+  f.getRange('A3').setValue('Compteurs relevés le ' + (quand || '—')
+                          + ' — source : msp-vaccins.fr')
+   .setFontColor('#666666').setFontSize(9);
+}
+
+/** Pose le déclencheur horaire, en remplaçant l'ancien s'il existe. */
+function installerSynchronisation() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'synchroniser') ScriptApp.deleteTrigger(t);
+  });
+
+  ScriptApp.newTrigger('synchroniser').timeBased().everyHours(1).create();
+  Logger.log('Déclencheur posé : synchronisation toutes les heures.');
+}
+
+/** À lancer une fois, après avoir renseigné les propriétés du script. */
+function testerSynchronisation() {
+  var resume = synchroniser();
   installerTableauDeBord();
-
-  Logger.log(refus === 'code-refuse'
-    ? 'Installation correcte — vérifiez « Indicateurs », « Actes » et « Tableau de bord ».'
-    : "ATTENTION : un code d'équipe erroné a été accepté (réponse : " + refus + ").");
+  marquerSynchro();
+  Logger.log('Synchronisation réussie — ' + resume
+           + ' Vérifiez « Indicateurs », « Actes » et « Tableau de bord », '
+           + 'puis lancez installerSynchronisation().');
 }
 
 /**
@@ -432,9 +284,11 @@ function installerTableauDeBord() {
   var ACTES = FEUILLE_ACTES;
 
   // Les deux feuilles de compteurs doivent exister avant que les formules ne
-  // les citent : sinon le tableau s'installe plein de #REF!.
-  obtenirFeuille();
-  obtenirFeuilleActes();
+  // les citent : sinon le tableau s'installe plein de #REF!. La
+  // synchronisation les crée si besoin, alors on la laisse faire.
+  if (!classeur.getSheetByName(src) || !classeur.getSheetByName(ACTES)) {
+    synchroniser();
+  }
 
   f.getRange('A1').setValue('Recommandations vaccinales — activité de prévention')
    .setFontSize(14).setFontWeight('bold');
