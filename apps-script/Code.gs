@@ -34,6 +34,24 @@
 
 var FEUILLE = 'Indicateurs';
 var FEUILLE_ACTES = 'Actes';
+
+/* Le rapprochement mensuel vit dans sa propre feuille, écrite par la
+ * synchronisation.
+ *
+ * Pourquoi pas une colonne de plus dans le tableau de bord : les deux
+ * nombres viennent de feuilles différentes, et un graphique a besoin de
+ * lignes réellement vides là où il n'y a pas de mois. Une ARRAYFORMULA
+ * renvoie "" — du texte, pas du vide — et le graphique hérite de colonnes
+ * fantômes. La synchronisation, elle, connaît les deux chiffres et n'écrit
+ * que les mois qui existent.
+ */
+var FEUILLE_COMPARATIF = 'Rapprochement mensuel';
+
+var COLONNES_COMPARATIF = [
+  'Mois',
+  'Restant à faire, d\'après les patients',
+  'Doses administrées à la MSP'
+];
 var COLONNES = [
   'Mois',
   'Questionnaires commencés',
@@ -197,8 +215,29 @@ function synchroniser() {
     return ligne;
   });
 
+  /* Les deux séries du rapprochement, mois par mois.
+   *
+   * Elles se lisent côte à côte et ne se divisent jamais l'une par l'autre :
+   * une dose administrée au comptoir n'a pas forcément suivi un
+   * questionnaire, et rien dans le dispositif ne permet de le savoir. Les
+   * mois sont ceux du questionnaire : un mois sans questionnaire n'a pas de
+   * besoin détecté à comparer. */
+  var dosesParMois = {};
+  moisTries(etat.actes).forEach(function (m) {
+    var d = etat.actes[m] || {};
+    var total = 0;
+    VACCINS.forEach(function (nom) { total += Number(d[nom]) || 0; });
+    dosesParMois[m] = total;
+  });
+
+  var lignesComp = moisTries(etat.indicateurs).map(function (m) {
+    var l = etat.indicateurs[m] || {};
+    return [m, Number(l.restants) || 0, dosesParMois[m] || 0];
+  });
+
   reecrire(FEUILLE, COLONNES, lignesInd);
   reecrire(FEUILLE_ACTES, colonnesActes(), lignesActes);
+  reecrire(FEUILLE_COMPARATIF, COLONNES_COMPARATIF, lignesComp);
 
   // L'horodatage rend une panne visible. Sans lui, une synchronisation
   // arrêtée laisse un tableau de bord parfaitement crédible et périmé.
@@ -285,7 +324,8 @@ function installerTableauDeBord() {
   // Les deux feuilles de compteurs doivent exister avant que les formules ne
   // les citent : sinon le tableau s'installe plein de #REF!. La
   // synchronisation les crée si besoin, alors on la laisse faire.
-  if (!classeur.getSheetByName(src) || !classeur.getSheetByName(ACTES)) {
+  if (!classeur.getSheetByName(src) || !classeur.getSheetByName(ACTES)
+      || !classeur.getSheetByName(FEUILLE_COMPARATIF)) {
     synchroniser();
   }
 
@@ -394,13 +434,16 @@ function installerTableauDeBord() {
            + "pas un relevé de carnet. « Vaccins administrés » est saisi à la main "
            + "par l'équipe : c'est un plancher, jamais un total — le compte exact "
            + "sort de la facturation. Ces deux blocs se lisent côte à côte et ne se "
-           + "divisent pas l'un par l'autre : rien ne relie une dose à un questionnaire.")
+           + "divisent pas l'un par l'autre : rien ne relie une dose à un questionnaire. "
+           + "Le graphique qui les rapproche les met côte à côte sur un même mois, "
+           + "il n'attribue pas les doses au questionnaire.")
    .setFontColor('#A85D00').setFontSize(9).setWrap(true);
 
   f.setColumnWidth(1, 280);
   for (var w = 2; w <= 7; w++) f.setColumnWidth(w, 130);
 
   installerGraphiques(f, src, ligneTotal, DEB);
+
   protegerCompteurs();
   return f;
 }
@@ -507,6 +550,43 @@ function installerGraphiques(f, src, ligneTotalActes, debutMensuel) {
     .setOption('vAxis', { textStyle: axeTexte })
     .build();
   f.insertChart(parVaccin);
+
+  /* ── Besoin détecté et doses administrées, mois par mois ──
+     Deux séries côte à côte, jamais empilées : empiler additionnerait des
+     choses qui ne s'additionnent pas, et suggérerait que les doses sortent
+     du besoin détecté. Rien ne relie les deux.
+
+     La source est la feuille du rapprochement, écrite en valeurs par la
+     synchronisation : ses lignes vides le sont réellement, là où une
+     formule renverrait "" et produirait des colonnes fantômes. */
+  var comp = f.getParent().getSheetByName(FEUILLE_COMPARATIF);
+  if (comp) {
+    var parMoisCompare = f.newChart()
+      .setChartType(Charts.ChartType.COLUMN)
+      .addRange(comp.getRange('A1:C200'))
+      .setPosition(debutMensuel + 22, 8, 0, 0)
+      .setOption('title', 'Besoin détecté et doses administrées, par mois')
+      .setOption('titleTextStyle', titre)
+      .setOption('series', {
+        0: { color: TEAL, labelInLegend: 'Restant à faire, d\'après les patients' },
+        1: { color: ORANGE, labelInLegend: 'Doses administrées à la MSP' }
+      })
+      .setOption('legend', { position: 'top', alignment: 'start', textStyle: axeTexte })
+      .setOption('bar', { groupWidth: '58%' })
+      .setOption('backgroundColor', '#FFFFFF')
+      .setOption('width', 620)
+      .setOption('height', 320)
+      .setOption('chartArea', { left: 55, top: 70, width: '84%', height: '58%' })
+      .setOption('hAxis', { textStyle: axeTexte })
+      .setOption('vAxis', {
+        textStyle: axeTexte,
+        viewWindow: { min: 0 },
+        gridlines: { color: GRILLE },
+        minorGridlines: { count: 0 }
+      })
+      .build();
+    f.insertChart(parMoisCompare);
+  }
 }
 
 /**
@@ -520,7 +600,7 @@ function installerGraphiques(f, src, ligneTotalActes, debutMensuel) {
 function protegerCompteurs() {
   var classeur = SpreadsheetApp.getActiveSpreadsheet();
 
-  [FEUILLE, FEUILLE_ACTES].forEach(function (nom) {
+  [FEUILLE, FEUILLE_ACTES, FEUILLE_COMPARATIF].forEach(function (nom) {
     var feuille = classeur.getSheetByName(nom);
     if (!feuille) return;
 

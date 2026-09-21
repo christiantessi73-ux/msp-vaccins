@@ -175,6 +175,22 @@ perdue pour le rapport. Il faut donc surveiller le taux de saisie les premières
 semaines — en comparant avec la facturation — et écrire dans le rapport qu'il
 s'agit d'un minimum.
 
+### Le rapprochement mensuel
+
+Une troisième feuille, `Rapprochement mensuel`, écrite par la synchronisation :
+une ligne par mois, les vaccins que les patients déclarent leur rester à faire
+d'un côté, les doses administrées à la MSP de l'autre. Elle alimente un
+graphique du tableau de bord, et la même comparaison figure sur
+`indicateurs.html`.
+
+Les deux barres sont **côte à côte, jamais empilées** : empiler additionnerait
+des choses qui ne s'additionnent pas, et suggérerait que les doses sortent du
+besoin détecté.
+
+Ce graphique montre **un besoin et une activité sur un même mois**. Il
+n'attribue pas les doses à l'enquête, et aucune légende ne rattraperait un
+graphique qui le laisserait croire.
+
 **`Actes` et `Indicateurs` ne se divisent pas l'un par l'autre.** Un vaccin
 fait au comptoir n'a pas forcément suivi un questionnaire, et rien dans le
 dispositif ne permet de le savoir : le QR code du comptoir est le même pour

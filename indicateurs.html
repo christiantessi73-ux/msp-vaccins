@@ -93,6 +93,48 @@
             border-bottom: 1px dotted var(--warning-text);
         }
 
+        /* ── Rapprochement mensuel ────────────────────────────────
+           Deux barres par mois, jamais empilées : empiler additionnerait
+           des choses qui ne s'additionnent pas et suggérerait que les
+           doses sortent du besoin détecté. */
+        .compare { display: grid; gap: 1.1rem; margin-top: 1rem; }
+        .compare-mois {
+            display: grid;
+            grid-template-columns: minmax(6rem, 8rem) 1fr;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .compare-nom { font-size: 0.9rem; font-weight: 600; }
+        .compare-paire { display: grid; gap: 0.3rem; }
+        .compare-rang {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.6rem;
+            align-items: center;
+        }
+        .compare-piste {
+            background: #eef4fb;
+            border-radius: 4px;
+            height: 1.1rem;
+            overflow: hidden;
+        }
+        .compare-part { height: 100%; border-radius: 4px; min-width: 2px; }
+        .compare-part.besoin { background: var(--primary); }
+        .compare-part.doses { background: #EB6834; }
+        .compare-val {
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            min-width: 2.5ch;
+            text-align: right;
+            font-size: 0.9rem;
+        }
+
+        .cles { display: flex; flex-wrap: wrap; gap: 1.1rem; margin-top: 0.75rem; }
+        .cle { display: flex; align-items: center; gap: 0.45rem; font-size: 0.88rem; }
+        .pastille { width: 0.9rem; height: 0.9rem; border-radius: 3px; flex-shrink: 0; }
+        .pastille.besoin { background: var(--primary); }
+        .pastille.doses { background: #EB6834; }
+
         .legende {
             font-size: 0.87rem;
             color: var(--text-gray);
@@ -187,6 +229,31 @@
                 </p>
                 <div class="barres" id="barres-doses"></div>
                 <p class="vide" id="doses-vide" hidden>Aucune dose saisie pour l'instant.</p>
+            </section>
+
+            <section class="section-card">
+                <h2>Besoin détecté et doses administrées</h2>
+                <p style="color: var(--text-gray); font-size: 0.92rem;">
+                    Par mois : les vaccins que les patients déclarent leur rester
+                    à faire, et les doses administrées à la MSP sur la même période.
+                </p>
+                <div class="cles">
+                    <span class="cle"><span class="pastille besoin"></span>
+                        Restant à faire, d'après les patients</span>
+                    <span class="cle"><span class="pastille doses"></span>
+                        Doses administrées à la MSP</span>
+                </div>
+                <div class="compare" id="compare"></div>
+                <p class="vide" id="compare-vide" hidden>Aucun relevé pour l'instant.</p>
+                <p class="legende">
+                    <strong>Ces deux barres se lisent côte à côte, jamais l'une
+                    divisée par l'autre.</strong> Rien ne relie une dose administrée
+                    au comptoir à un questionnaire : le QR code de l'équipe est le
+                    même pour tous et ne porte aucune trace du bilan d'un patient.
+                    C'est délibéré — c'est ce qui maintient ces compteurs anonymes.
+                    Le rapprochement montre un besoin et une activité sur un même
+                    mois, il n'attribue pas les doses à l'enquête.
+                </p>
             </section>
 
             <section class="section-card">
@@ -343,6 +410,43 @@
             }).join('');
         }
 
+        /* Deux séries par mois, à la même échelle.
+           Une échelle par série ferait paraître 3 doses aussi hautes que
+           120 vaccins à faire : la comparaison serait exactement fausse. */
+        function rapprochement(mois, etat) {
+            const cible = document.getElementById('compare');
+            const lignes = mois.map(function (m) {
+                const l = etat.indicateurs[m] || {};
+                const d = (etat.actes && etat.actes[m]) ? etat.actes[m] : {};
+                let doses = 0;
+                VACCINS.forEach(function (v) { doses += Number(d[v]) || 0; });
+                return [m, Number(l.restants) || 0, doses];
+            });
+
+            document.getElementById('compare-vide').hidden = (lignes.length > 0);
+
+            const max = lignes.reduce(function (acc, l) {
+                return Math.max(acc, l[1], l[2]);
+            }, 0);
+
+            const rang = function (valeur, classe) {
+                const largeur = max > 0 ? (100 * valeur / max) : 0;
+                return '<span class="compare-rang">'
+                     + '<span class="compare-piste"><span class="compare-part ' + classe
+                     + '" style="width:' + largeur.toFixed(1) + '%"></span></span>'
+                     + '<span class="compare-val">' + effectif(valeur) + '</span>'
+                     + '</span>';
+            };
+
+            cible.innerHTML = lignes.map(function (l) {
+                return '<div class="compare-mois">'
+                     + '<span class="compare-nom">' + echapper(moisLisible(l[0])) + '</span>'
+                     + '<span class="compare-paire">'
+                     + rang(l[1], 'besoin') + rang(l[2], 'doses')
+                     + '</span></div>';
+            }).join('');
+        }
+
         function afficher(etat) {
             const mois = Object.keys(etat.indicateurs || {}).sort();
 
@@ -402,6 +506,8 @@
 
             document.getElementById('doses-vide').hidden = (dosesVues.length > 0);
             barres(document.getElementById('barres-doses'), dosesVues, 'doses');
+
+            rapprochement(mois.slice().reverse(), etat);
 
             // Mois par mois, du plus récent au plus ancien : on consulte le
             // mois en cours bien plus souvent que celui d'il y a deux ans.
