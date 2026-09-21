@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Indicateurs - MSP Route de Vienne</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* ── Chiffres de synthèse ─────────────────────────────────── */
+        .tuiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+            gap: 1px;
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+        .tuile {
+            background: #fff;
+            padding: 1.1rem 1.2rem;
+        }
+        .tuile-valeur {
+            font-size: 1.9rem;
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--primary);
+            font-variant-numeric: tabular-nums;
+        }
+        .tuile-nom {
+            font-size: 0.87rem;
+            color: var(--text-gray);
+            margin-top: 0.3rem;
+            line-height: 1.35;
+        }
+
+        /* ── Barres ───────────────────────────────────────────────── */
+        .barres { display: grid; gap: 0.55rem; margin-top: 0.5rem; }
+        .barre-ligne {
+            display: grid;
+            grid-template-columns: minmax(7rem, 11rem) 1fr auto;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .barre-nom {
+            font-size: 0.9rem;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
+        .barre-piste {
+            background: #eef4fb;
+            border-radius: 4px;
+            height: 1.35rem;
+            overflow: hidden;
+        }
+        .barre-part {
+            height: 100%;
+            border-radius: 4px;
+            background: var(--primary);
+            min-width: 2px;
+            transition: width 0.3s ease;
+        }
+        .barre-part.doses { background: #EB6834; }
+        .barre-val {
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            min-width: 2.5ch;
+            text-align: right;
+        }
+
+        /* ── Tableau mensuel ──────────────────────────────────────── */
+        .tableau-enveloppe { overflow-x: auto; margin-top: 0.5rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td {
+            padding: 0.55rem 0.7rem;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        th { background: #eef4fb; font-weight: 700; text-align: right; }
+        th:first-child, td:first-child { text-align: left; }
+
+        /* Une case sous 5 reste lisible : elle est signalée, pas masquée.
+           La règle interdit de la publier, pas de la consulter — et cacher
+           ses propres chiffres à l'équipe rendrait la page inutilisable. */
+        .fragile {
+            color: var(--warning-text);
+            font-weight: 700;
+            cursor: help;
+            border-bottom: 1px dotted var(--warning-text);
+        }
+
+        .legende {
+            font-size: 0.87rem;
+            color: var(--text-gray);
+            margin-top: 1rem;
+            line-height: 1.5;
+        }
+
+        .vide {
+            color: var(--text-gray);
+            font-style: italic;
+            padding: 1rem 0;
+        }
+
+        .acte-message {
+            margin-top: 1rem;
+            padding: 0.9rem 1rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+        }
+        .acte-message.ok { background: #e8f6ec; color: #1c6b31; }
+        .acte-message.ko { background: #fdecea; color: #96281b; }
+        .acte-code { max-width: 200px; letter-spacing: 0.4em; text-align: center; }
+
+        .btn-valider { background: var(--primary); color: #fff; }
+        .btn-valider:disabled { background: var(--border-color); color: var(--text-gray); }
+        @media (hover: hover) {
+            .btn-valider:not(:disabled):hover { background: var(--primary-light); }
+        }
+
+        @media (max-width: 480px) {
+            .barre-ligne { grid-template-columns: minmax(5.5rem, 8rem) 1fr auto; gap: 0.5rem; }
+            .tuile-valeur { font-size: 1.6rem; }
+        }
+    </style>
+</head>
+<body class="page-simple">
+
+    <header>
+        <p class="bandeau-msp">
+            <i class="ph ph-chart-bar" aria-hidden="true"></i>
+            <span>Réservé à l'équipe de la <strong>MSP Route de Vienne</strong></span>
+        </p>
+        <h1>Indicateurs</h1>
+        <p class="subtitle">Activité de prévention vaccinale.<br>
+        Chiffres agrégés, aucune donnée individuelle.</p>
+    </header>
+
+    <div class="container container-texte">
+
+        <section class="section-card" id="bloc-code">
+            <h2>Code de l'équipe</h2>
+            <div class="form-group">
+                <label for="code">Saisissez le code pour consulter les indicateurs</label>
+                <input type="password" id="code" class="input-field acte-code"
+                       inputmode="numeric" autocomplete="off" maxlength="6"
+                       placeholder="••••" autofocus>
+            </div>
+            <div class="cta-buttons" style="justify-content: flex-start; margin-top: 0;">
+                <button class="btn btn-valider" id="btn-deverrouiller">
+                    <i class="ph ph-lock-key-open"></i> Consulter
+                </button>
+            </div>
+            <div id="message-code" class="acte-message" hidden></div>
+            <p style="color: var(--text-gray); font-size: 0.9rem; margin: 1rem 0 0;">
+                C'est le même code que pour la saisie des doses. Cette page ne fait
+                que lire : elle ne peut rien modifier.
+            </p>
+        </section>
+
+        <div id="bloc-donnees" hidden>
+
+            <section class="section-card">
+                <h2>Depuis le début</h2>
+                <div class="tuiles" id="tuiles"></div>
+            </section>
+
+            <section class="section-card">
+                <h2>Qui fait le point</h2>
+                <p style="color: var(--text-gray); font-size: 0.92rem;">
+                    Répartition des questionnaires complétés par tranche d'âge.
+                </p>
+                <div class="barres" id="barres-age"></div>
+            </section>
+
+            <section class="section-card">
+                <h2>Vaccins administrés</h2>
+                <p style="color: var(--text-gray); font-size: 0.92rem;">
+                    Doses saisies par l'équipe. Ce total est un <strong>plancher</strong> :
+                    une dose non saisie est perdue pour le rapport.
+                </p>
+                <div class="barres" id="barres-doses"></div>
+                <p class="vide" id="doses-vide" hidden>Aucune dose saisie pour l'instant.</p>
+            </section>
+
+            <section class="section-card">
+                <h2>Mois par mois</h2>
+                <div class="tableau-enveloppe">
+                    <table id="tableau-mois">
+                        <thead><tr>
+                            <th>Mois</th>
+                            <th>Commencés</th>
+                            <th>Complétés</th>
+                            <th>Complétion</th>
+                            <th>Moy. vaccins</th>
+                            <th>45 ans et +</th>
+                            <th>Couverture</th>
+                            <th>Doses</th>
+                            <th>PDF</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <p class="legende">
+                    <i class="ph ph-warning-circle" aria-hidden="true"
+                       style="color: var(--warning-text);"></i>
+                    Les nombres <span class="fragile">signalés ainsi</span> comptent moins
+                    de 5 personnes. Vous pouvez les consulter, mais
+                    <strong>ne les publiez jamais tels quels</strong> : à cette échelle,
+                    dans une seule officine, un chiffre redevient quelqu'un. Pour un
+                    rapport, regroupez les mois ou les tranches.
+                </p>
+            </section>
+
+            <section class="section-card">
+                <h2>Ce que ces chiffres ne disent pas</h2>
+                <p>Le questionnaire documente l'<strong>amont</strong> : l'action de
+                sensibilisation. Il ne prouve aucun acte vaccinal — le compte exact des
+                patients vaccinés sort de la facturation.</p>
+                <p>Les doses administrées et les questionnaires
+                <strong>ne se divisent pas l'un par l'autre</strong>. Un vaccin fait au
+                comptoir n'a pas forcément suivi un questionnaire, et rien dans le
+                dispositif ne permet de le savoir : c'est délibéré, et c'est ce qui
+                maintient ces compteurs anonymes. Les deux séries se lisent côte à côte.</p>
+                <p style="margin-bottom:0">La « couverture déclarée » est ce que les
+                patients disent avoir déjà fait, pas un relevé de carnet.</p>
+            </section>
+
+        </div>
+
+        <p class="privacy-notice" id="pied" hidden>
+            Chiffres lus en direct depuis les compteurs du site — contrairement au
+            tableau de bord du classeur, qui peut avoir jusqu'à une heure de retard.<br>
+            <a href="index.html">Revenir au questionnaire</a>
+        </p>
+    </div>
+
+    <script>
+        /* ============== Consultation des indicateurs ==============
+
+           Cette page ne fait que lire. Elle demande les compteurs à api.php,
+           qui ne lui renvoie que des nombres mensuels : jamais une ligne par
+           patient, puisqu'il n'en existe aucune.
+
+           Le code de l'équipe n'est pas comparé ici - il est envoyé au
+           serveur, qui répond. Le vérifier dans la page ne prouverait rien,
+           et obligerait à l'y écrire. */
+
+        const STATS_ENDPOINT = "/api.php";
+        const STATS_CLE = "msp-84feb9a16b719652c1d0286d";
+
+        /* Même liste et même ordre que dans index.html, acte.html, api.php et
+           Code.gs. Les cinq doivent rester identiques. */
+        const VACCINS = [
+            'DTPc',
+            'HPV (Papillomavirus Humain)',
+            'Méningocoque',
+            'ROR',
+            'Hépatite B',
+            'Hépatite A',
+            'Varicelle',
+            'Grippe',
+            'Covid-19',
+            'Pneumocoque',
+            'Zona',
+            'Coqueluche',
+            'Bronchiolite / VRS',
+            'Méningocoque ACWY',
+            'Méningocoque B'
+        ];
+
+        const TRANCHES = [
+            ['11-24', '11-24 ans'],
+            ['25-44', '25-44 ans'],
+            ['45-64', '45-64 ans'],
+            ['65+',   '65 ans et plus']
+        ];
+
+        /* Le seuil de la règle : en dessous, une case ne se publie pas.
+           Elle reste affichée, mais signalée. */
+        const SEUIL_FRAGILE = 5;
+
+        const codeInput = document.getElementById('code');
+        const btnDeverrouiller = document.getElementById('btn-deverrouiller');
+        const messageCode = document.getElementById('message-code');
+        const blocCode = document.getElementById('bloc-code');
+        const blocDonnees = document.getElementById('bloc-donnees');
+        const pied = document.getElementById('pied');
+
+        function echapper(t) {
+            return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function nombre(n) {
+            return (Number(n) || 0).toLocaleString('fr-FR');
+        }
+
+        function pourcent(num, den) {
+            if (!den) return '—';
+            return (100 * num / den).toFixed(1).replace('.', ',') + ' %';
+        }
+
+        function decimal(num, den) {
+            if (!den) return '—';
+            return (num / den).toFixed(1).replace('.', ',');
+        }
+
+        /* Un effectif, signalé quand il passe sous le seuil de publication.
+           On n'applique la règle qu'à des comptages de personnes : un taux ou
+           une moyenne ne désigne personne à lui seul. */
+        function effectif(n) {
+            const v = Number(n) || 0;
+            if (v > 0 && v < SEUIL_FRAGILE) {
+                return '<span class="fragile" title="Moins de ' + SEUIL_FRAGILE
+                     + ' personnes : ne pas publier tel quel">' + v + '</span>';
+            }
+            return nombre(v);
+        }
+
+        function moisLisible(m) {
+            const noms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+                          'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+            const p = String(m).split('-');
+            const i = parseInt(p[1], 10) - 1;
+            return (noms[i] || m) + ' ' + p[0];
+        }
+
+        function barres(cible, entrees, classe) {
+            const max = entrees.reduce(function (m, e) { return Math.max(m, e[1]); }, 0);
+            cible.innerHTML = entrees.map(function (e) {
+                const largeur = max > 0 ? (100 * e[1] / max) : 0;
+                return '<div class="barre-ligne">'
+                     + '<span class="barre-nom">' + echapper(e[0]) + '</span>'
+                     + '<span class="barre-piste"><span class="barre-part ' + classe
+                     + '" style="width:' + largeur.toFixed(1) + '%"></span></span>'
+                     + '<span class="barre-val">' + effectif(e[1]) + '</span>'
+                     + '</div>';
+            }).join('');
+        }
+
+        function afficher(etat) {
+            const mois = Object.keys(etat.indicateurs || {}).sort();
+
+            // Totaux depuis le début
+            const t = { commences: 0, completes: 0, recommandes: 0, pdf: 0, faits: 0 };
+            const parTranche = { '11-24': 0, '25-44': 0, '45-64': 0, '65+': 0 };
+
+            mois.forEach(function (m) {
+                const l = etat.indicateurs[m] || {};
+                t.commences   += Number(l.commences) || 0;
+                t.completes   += Number(l.completes) || 0;
+                t.recommandes += Number(l.recommandes) || 0;
+                t.pdf         += Number(l.pdf) || 0;
+                t.faits       += Number(l.faits) || 0;
+                TRANCHES.forEach(function (tr) {
+                    parTranche[tr[0]] += Number(l[tr[0]]) || 0;
+                });
+            });
+
+            const dosesParVaccin = {};
+            let totalDoses = 0;
+            VACCINS.forEach(function (v) { dosesParVaccin[v] = 0; });
+            Object.keys(etat.actes || {}).forEach(function (m) {
+                const d = etat.actes[m] || {};
+                VACCINS.forEach(function (v) {
+                    const n = Number(d[v]) || 0;
+                    dosesParVaccin[v] += n;
+                    totalDoses += n;
+                });
+            });
+
+            const plus45 = parTranche['45-64'] + parTranche['65+'];
+
+            const tuiles = [
+                [nombre(t.commences), 'Questionnaires commencés'],
+                [nombre(t.completes), 'Questionnaires complétés'],
+                [pourcent(t.completes, t.commences), 'Taux de complétion'],
+                [decimal(t.recommandes, t.completes), 'Vaccins recommandés par questionnaire'],
+                [pourcent(plus45, t.completes), 'Part des 45 ans et plus'],
+                [pourcent(t.faits, t.recommandes), 'Couverture déclarée'],
+                [nombre(totalDoses), 'Doses administrées à la MSP'],
+                [nombre(t.pdf), 'Bilans imprimés ou enregistrés']
+            ];
+
+            document.getElementById('tuiles').innerHTML = tuiles.map(function (x) {
+                return '<div class="tuile"><div class="tuile-valeur">' + x[0] + '</div>'
+                     + '<div class="tuile-nom">' + x[1] + '</div></div>';
+            }).join('');
+
+            barres(document.getElementById('barres-age'),
+                   TRANCHES.map(function (tr) { return [tr[1], parTranche[tr[0]]]; }), '');
+
+            // Les vaccins jamais administrés encombreraient la liste sans rien
+            // apprendre : on n'affiche que ceux qui ont au moins une dose.
+            const dosesVues = VACCINS
+                .map(function (v) { return [v, dosesParVaccin[v]]; })
+                .filter(function (e) { return e[1] > 0; })
+                .sort(function (a, b) { return b[1] - a[1]; });
+
+            document.getElementById('doses-vide').hidden = (dosesVues.length > 0);
+            barres(document.getElementById('barres-doses'), dosesVues, 'doses');
+
+            // Mois par mois, du plus récent au plus ancien : on consulte le
+            // mois en cours bien plus souvent que celui d'il y a deux ans.
+            const corps = document.querySelector('#tableau-mois tbody');
+            corps.innerHTML = mois.slice().reverse().map(function (m) {
+                const l = etat.indicateurs[m] || {};
+                const p45 = (Number(l['45-64']) || 0) + (Number(l['65+']) || 0);
+                const dm = etat.actes && etat.actes[m] ? etat.actes[m] : {};
+                let dosesMois = 0;
+                VACCINS.forEach(function (v) { dosesMois += Number(dm[v]) || 0; });
+
+                return '<tr>'
+                     + '<td>' + echapper(moisLisible(m)) + '</td>'
+                     + '<td>' + effectif(l.commences) + '</td>'
+                     + '<td>' + effectif(l.completes) + '</td>'
+                     + '<td>' + pourcent(Number(l.completes) || 0, Number(l.commences) || 0) + '</td>'
+                     + '<td>' + decimal(Number(l.recommandes) || 0, Number(l.completes) || 0) + '</td>'
+                     + '<td>' + effectif(p45) + '</td>'
+                     + '<td>' + pourcent(Number(l.faits) || 0, Number(l.recommandes) || 0) + '</td>'
+                     + '<td>' + effectif(dosesMois) + '</td>'
+                     + '<td>' + effectif(l.pdf) + '</td>'
+                     + '</tr>';
+            }).join('') || '<tr><td colspan="9" class="vide">Aucun relevé pour l\'instant.</td></tr>';
+        }
+
+        function afficherCode(texte, ok) {
+            messageCode.textContent = texte;
+            messageCode.className = 'acte-message ' + (ok ? 'ok' : 'ko');
+            messageCode.hidden = false;
+        }
+
+        function consulter() {
+            const code = codeInput.value.trim();
+            if (!code) {
+                afficherCode("Saisissez le code de l'équipe.", false);
+                codeInput.focus();
+                return;
+            }
+
+            btnDeverrouiller.disabled = true;
+            afficherCode('Lecture…', true);
+
+            fetch(STATS_ENDPOINT, {
+                method: 'POST',
+                redirect: 'follow',
+                body: JSON.stringify({ e: 'lire', k: STATS_CLE, pin: code })
+            })
+            .then(function (r) { return r.text(); })
+            .then(function (texte) {
+                btnDeverrouiller.disabled = false;
+
+                if (texte.indexOf('code-refuse') !== -1) {
+                    afficherCode('Code incorrect.', false);
+                    codeInput.value = '';
+                    codeInput.focus();
+                    return;
+                }
+
+                let etat;
+                try {
+                    etat = JSON.parse(texte);
+                } catch (err) {
+                    // Réponse non-JSON : c'est un jeton de refus. Le citer
+                    // évite de chercher une panne là où il n'y a qu'un
+                    // plafond atteint ou un serveur à mettre à jour.
+                    afficherCode("Réponse inattendue du serveur (« "
+                               + texte.slice(0, 40) + " ») : réessayez.", false);
+                    return;
+                }
+
+                if (!etat || typeof etat.indicateurs !== 'object') {
+                    afficherCode('Compteurs illisibles : prévenez la personne '
+                               + 'qui gère le dispositif.', false);
+                    return;
+                }
+
+                codeInput.value = '';
+                messageCode.hidden = true;
+                blocCode.hidden = true;
+                blocDonnees.hidden = false;
+                pied.hidden = false;
+                afficher(etat);
+            })
+            .catch(function () {
+                btnDeverrouiller.disabled = false;
+                afficherCode('Lecture impossible - vérifiez la connexion.', false);
+            });
+        }
+
+        btnDeverrouiller.addEventListener('click', consulter);
+        codeInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); consulter(); }
+        });
+        codeInput.addEventListener('input', function () { messageCode.hidden = true; });
+    </script>
+</body>
+</html>
