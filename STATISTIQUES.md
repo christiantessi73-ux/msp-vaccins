@@ -226,6 +226,27 @@ que la clé partagée : il évite la fausse manœuvre — un patient qui scanne
 l'affiche par curiosité — pas quelqu'un de déterminé. Il n'a rien à protéger :
 `acte.html` ne sait qu'ajouter des doses.
 
+### Choisir la période
+
+Un sélecteur en haut de `indicateurs.html` commande **toute la page** : totaux,
+camembert, doses, rapprochement mensuel, tableau, et le rapport Word. Les
+préréglages (année en cours, 12 / 6 / 3 derniers mois, dernier mois relevé) ne
+sont que des raccourcis qui posent deux bornes, lesquelles restent visibles et
+modifiables : on voit toujours ce qui a été réellement appliqué.
+
+Un préréglage qui ne recouvrirait aucun mois relevé est désactivé, plutôt que
+de produire une page vide sans explication.
+
+**Rien de plus fin qu'un mois n'est possible**, et ce n'est pas une limite
+technique : le dispositif ne stocke qu'un compteur par mois, sans date ni
+horodatage. C'est exactement ce qui rend ces chiffres anonymes — au jour,
+« 1 questionnaire, 11-24 ans, le 3 octobre » redeviendrait identifiant dans une
+officine.
+
+Corollaire à garder en tête : **plus la période est courte, plus les cases
+passent sous 5**. Sur un mois isolé, la plupart des tranches d'âge seront
+signalées. C'est le signalement qui fonctionne, pas un défaut.
+
 ### Le rapport Word
 
 `indicateurs.html` produit un document téléchargeable, que Word ouvre

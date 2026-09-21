@@ -171,6 +171,12 @@
             font-size: 0.92rem;
         }
         .periode label { display: inline; margin: 0; font-weight: 400; }
+        .periode-bornes {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
         .periode select {
             font: inherit;
             padding: 0.4rem 0.6rem;
@@ -232,17 +238,18 @@
 
             <section class="section-card barre-rapport">
                 <div>
-                    <h2 style="margin-bottom:0.2rem;">Rapport d'activité</h2>
+                    <h2 style="margin-bottom:0.2rem;">Période</h2>
                     <p style="color: var(--text-gray); font-size: 0.9rem; margin:0 0 0.8rem;">
-                        Les chiffres et les graphiques de la période choisie, avec les
-                        précautions de lecture, dans un document que Word ouvre
-                        directement.
+                        Toute la page suit ce choix, et le rapport aussi.
                     </p>
                     <div class="periode">
-                        <label for="periode-debut">De</label>
-                        <select id="periode-debut"></select>
-                        <label for="periode-fin">à</label>
-                        <select id="periode-fin"></select>
+                        <select id="periode-preset" aria-label="Période"></select>
+                        <span class="periode-bornes">
+                            <label for="periode-debut">De</label>
+                            <select id="periode-debut"></select>
+                            <label for="periode-fin">à</label>
+                            <select id="periode-fin"></select>
+                        </span>
                     </div>
                 </div>
                 <button class="btn btn-valider" id="btn-rapport">
@@ -251,7 +258,7 @@
             </section>
 
             <section class="section-card">
-                <h2>Depuis le début</h2>
+                <h2>Sur la période</h2>
                 <div class="tuiles" id="tuiles"></div>
             </section>
 
@@ -1027,6 +1034,79 @@
             }).sort();
         }
 
+        const selPreset = document.getElementById('periode-preset');
+
+        /* Le mois en cours, dans le fuseau du navigateur. toISOString() le
+           donnerait en temps universel, ce qui décalerait le 1er du mois
+           d'une heure et changerait de mois une nuit sur deux. */
+        function moisCourant() {
+            const d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        }
+
+        function moisDecale(n) {
+            const d = new Date();
+            d.setDate(1);
+            d.setMonth(d.getMonth() - n);
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        }
+
+        /* Les préréglages ne sont que des raccourcis : chacun pose les deux
+           bornes, qui restent visibles et modifiables. On voit donc toujours
+           ce qui a été réellement appliqué, là où un menu seul demanderait
+           de faire confiance à son libellé. */
+        const PRESETS = [
+            { cle: 'tout',  nom: 'Toute la période',
+              bornes: function (dispo) { return [dispo[0], dispo[dispo.length - 1]]; } },
+            { cle: 'annee', nom: 'Année en cours',
+              bornes: function () {
+                  const a = new Date().getFullYear();
+                  return [a + '-01', a + '-12'];
+              } },
+            { cle: '12', nom: '12 derniers mois',
+              bornes: function () { return [moisDecale(11), moisCourant()]; } },
+            { cle: '6', nom: '6 derniers mois',
+              bornes: function () { return [moisDecale(5), moisCourant()]; } },
+            { cle: '3', nom: '3 derniers mois',
+              bornes: function () { return [moisDecale(2), moisCourant()]; } },
+            { cle: 'dernier', nom: 'Dernier mois relevé',
+              bornes: function (dispo) {
+                  return [dispo[dispo.length - 1], dispo[dispo.length - 1]];
+              } },
+            { cle: 'libre', nom: 'Période personnalisée', bornes: null }
+        ];
+
+        /* Un préréglage qui ne recouvre aucun mois relevé est désactivé
+           plutôt que de produire une page vide sans explication. */
+        function bornesUtiles(preset, dispo) {
+            if (!preset.bornes || dispo.length === 0) return null;
+            const b = preset.bornes(dispo);
+            const dedans = dispo.filter(function (m) { return m >= b[0] && m <= b[1]; });
+            if (dedans.length === 0) return null;
+            return [dedans[0], dedans[dedans.length - 1]];
+        }
+
+        function remplirPresets(dispo) {
+            selPreset.innerHTML = PRESETS.map(function (pr) {
+                const utile = (pr.cle === 'libre') || bornesUtiles(pr, dispo);
+                return '<option value="' + pr.cle + '"'
+                     + (utile ? '' : ' disabled') + '>' + pr.nom + '</option>';
+            }).join('');
+            selPreset.value = 'tout';
+        }
+
+        function appliquerPreset() {
+            const pr = PRESETS.find(function (x) { return x.cle === selPreset.value; });
+            if (!pr || !pr.bornes) return;
+            const b = bornesUtiles(pr, moisDisponibles(dernierEtat || {}));
+            if (!b) return;
+            selDebut.value = b[0];
+            selFin.value = b[1];
+            rendre();
+        }
+
+        selPreset.addEventListener('change', appliquerPreset);
+
         function remplirPeriode(etat) {
             const mois = moisDisponibles(etat);
             const options = mois.map(function (m) {
@@ -1040,6 +1120,8 @@
             selDebut.disabled = vide;
             selFin.disabled = vide;
             document.getElementById('btn-rapport').disabled = vide;
+
+            remplirPresets(mois);
 
             if (!vide) {
                 selDebut.value = mois[0];
@@ -1058,8 +1140,16 @@
             }
         }
 
-        selDebut.addEventListener('change', function () { accorderBornes('debut'); });
-        selFin.addEventListener('change', function () { accorderBornes('fin'); });
+        selDebut.addEventListener('change', function () {
+            accorderBornes('debut');
+            selPreset.value = 'libre';
+            rendre();
+        });
+        selFin.addEventListener('change', function () {
+            accorderBornes('fin');
+            selPreset.value = 'libre';
+            rendre();
+        });
 
         /* Les clés sont au format AAAA-MM : leur ordre alphabétique est leur
            ordre chronologique, la comparaison de chaînes suffit. */
@@ -1357,6 +1447,11 @@
         function afficher(etat) {
             dernierEtat = etat;
             remplirPeriode(etat);
+            rendre();
+        }
+
+        function rendre() {
+            const etat = etatSurPeriode(dernierEtat, selDebut.value, selFin.value);
             const mois = Object.keys(etat.indicateurs || {}).sort();
 
             // Totaux depuis le début
