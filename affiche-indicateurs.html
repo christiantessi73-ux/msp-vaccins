@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Consulter les indicateurs - MSP Route de Vienne</title>
+    <style>
+        /* Affiche à imprimer, pas une page du site : sa feuille de style est
+           ici plutôt que dans style.css, pour qu'elle sorte de l'imprimante à
+           l'identique même si le site évolue. */
+        :root {
+            --encre: #14303D;
+            --accent: #16707F;
+            --gris: #5C6E75;
+            --trait: #CFDDE2;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            background: #F4F7F8;
+            color: var(--encre);
+            font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+            line-height: 1.45;
+        }
+
+        .feuille {
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 1.8cm 1.6cm;
+            background: #fff;
+            box-shadow: 0 2px 18px rgba(0,0,0,0.09);
+            text-align: center;
+        }
+
+        .bandeau {
+            display: inline-block;
+            background: var(--encre);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            border-radius: 3px;
+        }
+
+        .pour {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent);
+            margin: 18px 0 2px;
+        }
+
+        h1 {
+            font-size: 34px;
+            line-height: 1.1;
+            margin: 0 0 8px;
+            letter-spacing: -0.015em;
+        }
+
+        .accroche {
+            color: var(--gris);
+            font-size: 16px;
+            margin: 0 auto 4px;
+            max-width: 15cm;
+        }
+
+        .qr {
+            width: 9.5cm;
+            max-width: 100%;
+            margin: 22px auto 6px;
+            padding: 14px;
+            border: 3px solid var(--accent);
+            border-radius: 14px;
+        }
+        .qr svg { display: block; width: 100%; height: auto; }
+
+        .adresse {
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: 13px;
+            color: var(--gris);
+            margin: 0 0 24px;
+            overflow-wrap: anywhere;
+        }
+
+        .contenu {
+            text-align: left;
+            max-width: 15cm;
+            margin: 0 auto;
+        }
+
+        .contenu h2 {
+            font-size: 17px;
+            margin: 0 0 8px;
+        }
+
+        ol, ul { margin: 0; padding-left: 22px; }
+        li { margin-bottom: 8px; font-size: 15px; }
+        ol li::marker { color: var(--accent); font-weight: 700; }
+
+        .code-equipe {
+            margin: 24px auto 0;
+            max-width: 15cm;
+            border: 2px dashed var(--trait);
+            border-radius: 8px;
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 13px;
+            color: var(--gris);
+            page-break-inside: avoid;
+        }
+        .champ {
+            display: inline-block;
+            min-width: 130px;
+            border-bottom: 2px solid var(--encre);
+            margin-left: 8px;
+        }
+
+        .avertissement {
+            margin: 18px auto 0;
+            max-width: 15cm;
+            border-left: 4px solid #C2501F;
+            background: #FCEFEA;
+            border-radius: 0 8px 8px 0;
+            padding: 13px 15px;
+            text-align: left;
+            font-size: 14px;
+            page-break-inside: avoid;
+        }
+        .avertissement strong { color: #C2501F; }
+
+        footer {
+            margin: 24px auto 0;
+            max-width: 15cm;
+            padding-top: 12px;
+            border-top: 1px solid var(--trait);
+            text-align: left;
+            font-size: 13px;
+            color: var(--gris);
+        }
+
+        .imprimer { max-width: 21cm; margin: 0 auto 14px; text-align: right; }
+        .imprimer button {
+            font: inherit;
+            font-weight: 700;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 22px;
+            cursor: pointer;
+        }
+
+        /* À l'impression : une seule feuille, sans ombre ni bouton. */
+        @media print {
+            @page { size: A4 portrait; margin: 14mm; }
+            body { background: #fff; padding: 0; }
+            .feuille { box-shadow: none; max-width: none; padding: 0; }
+            .imprimer { display: none; }
+        }
+
+        @media (max-width: 520px) {
+            .feuille { padding: 1.2cm 1cm; }
+            h1 { font-size: 27px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="imprimer">
+        <button onclick="window.print()">Imprimer cette affiche</button>
+    </div>
+
+    <div class="feuille">
+
+        <span class="bandeau">Réservé à l'équipe</span>
+
+        <p class="pour">Médecins</p>
+        <h1>Consulter les indicateurs</h1>
+        <p class="accroche">Les chiffres de l'activité de prévention vaccinale, en direct.</p>
+
+        <div class="qr"><svg viewBox="0 0 410 410" xmlns="http://www.w3.org/2000/svg"><path transform="scale(10)" class="qrline" stroke="#16707f" d="M2 2.5h7m8 0h1m2 0h2m1 0h1m1 0h1m1 0h1m1 0h2m1 0h7m-37 1h1m5 0h1m1 0h1m1 0h1m2 0h2m3 0h1m2 0h1m2 0h3m3 0h1m5 0h1m-37 1h1m1 0h3m1 0h1m2 0h1m4 0h1m1 0h2m2 0h2m1 0h2m1 0h1m3 0h1m1 0h3m1 0h1m-37 1h1m1 0h3m1 0h1m3 0h2m1 0h3m1 0h2m1 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h3m1 0h1m-37 1h1m1 0h3m1 0h1m4 0h1m3 0h1m2 0h1m4 0h2m2 0h1m2 0h1m1 0h3m1 0h1m-37 1h1m5 0h1m1 0h2m1 0h4m2 0h2m1 0h1m2 0h1m4 0h1m1 0h1m5 0h1m-37 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-29 1h4m3 0h1m1 0h1m4 0h1m2 0h1m-22 1h4m1 0h8m5 0h4m1 0h1m2 0h2m3 0h1m-35 1h1m7 0h2m2 0h2m2 0h1m2 0h1m1 0h1m3 0h1m5 0h1m-33 1h1m2 0h5m2 0h1m1 0h2m3 0h4m1 0h8m5 0h1m-33 1h1m3 0h1m2 0h1m1 0h4m1 0h2m2 0h1m1 0h1m2 0h4m1 0h1m1 0h4m-37 1h5m1 0h2m1 0h2m3 0h1m2 0h1m6 0h1m4 0h3m2 0h1m1 0h1m-37 1h3m1 0h2m3 0h5m1 0h1m1 0h5m1 0h7m2 0h1m1 0h1m-35 1h2m4 0h2m3 0h1m2 0h1m2 0h1m1 0h1m2 0h1m2 0h1m1 0h1m1 0h1m2 0h4m-36 1h1m3 0h2m1 0h2m2 0h2m1 0h1m3 0h2m1 0h2m1 0h1m1 0h1m1 0h1m1 0h3m1 0h2m-34 1h2m1 0h8m1 0h1m1 0h1m9 0h1m2 0h3m1 0h2m1 0h1m-33 1h2m1 0h1m1 0h1m1 0h4m1 0h4m2 0h1m1 0h5m3 0h3m-35 1h1m1 0h2m2 0h3m2 0h1m3 0h1m1 0h2m1 0h1m2 0h1m2 0h2m3 0h1m2 0h1m-35 1h1m2 0h2m3 0h3m1 0h5m1 0h1m2 0h4m2 0h3m4 0h1m1 0h1m-37 1h1m1 0h1m1 0h1m1 0h1m2 0h1m2 0h2m2 0h1m1 0h3m2 0h2m2 0h1m1 0h2m2 0h4m-33 1h2m2 0h1m2 0h4m1 0h1m2 0h1m2 0h6m4 0h4m-36 1h2m2 0h1m1 0h1m2 0h4m2 0h1m1 0h1m3 0h4m2 0h2m1 0h1m-21 1h1m1 0h1m2 0h1m1 0h3m1 0h1m4 0h1m1 0h1m2 0h1m2 0h3m-37 1h2m1 0h8m2 0h4m1 0h3m2 0h1m1 0h3m1 0h2m3 0h1m1 0h1m-37 1h1m4 0h1m5 0h2m2 0h5m4 0h1m7 0h4m-31 1h2m1 0h2m1 0h2m2 0h1m1 0h1m4 0h3m1 0h4m3 0h1m-32 1h3m3 0h2m1 0h2m1 0h1m1 0h1m1 0h1m1 0h1m1 0h2m2 0h2m2 0h1m1 0h1m1 0h3m-37 1h2m2 0h1m1 0h1m3 0h1m3 0h1m1 0h2m1 0h1m1 0h2m4 0h6m1 0h3m-29 1h2m2 0h1m1 0h1m1 0h1m1 0h1m1 0h4m4 0h1m3 0h2m1 0h1m-36 1h7m1 0h1m1 0h2m3 0h1m2 0h1m1 0h2m1 0h4m1 0h1m1 0h1m1 0h3m-35 1h1m5 0h1m1 0h1m1 0h1m1 0h1m2 0h3m2 0h5m3 0h1m3 0h1m1 0h1m1 0h1m-37 1h1m1 0h3m1 0h1m1 0h2m5 0h1m1 0h1m3 0h1m2 0h1m3 0h7m1 0h1m-37 1h1m1 0h3m1 0h1m2 0h3m1 0h5m1 0h1m1 0h1m3 0h3m2 0h2m1 0h1m-34 1h1m1 0h3m1 0h1m2 0h5m3 0h1m1 0h1m2 0h1m3 0h2m2 0h2m1 0h1m1 0h1m-36 1h1m5 0h1m3 0h7m3 0h3m1 0h1m1 0h2m1 0h1m1 0h1m2 0h2m-36 1h7m2 0h3m1 0h1m1 0h1m1 0h2m1 0h4m3 0h1m1 0h1m1 0h1m2 0h3"/></svg></div>
+        <p class="adresse">msp-vaccins.fr/indicateurs.html</p>
+
+        <div class="contenu"><h2>Ce que la page montre</h2>
+                <ul>
+                    <li>Questionnaires complétés et répartition par tranche d'âge.</li>
+                    <li>Vaccins déjà faits, à vérifier, et restant à faire d'après les
+                    patients.</li>
+                    <li>Doses administrées à la MSP, par vaccin et mois par mois.</li>
+                    <li>La période se choisit librement, et un bouton en sort un
+                    rapport que Word ouvre directement.</li>
+                </ul></div>
+
+        <div class="code-equipe">
+            Code de l'équipe : <span class="champ"></span><br>
+            À remplir à la main, et seulement si cette affiche n'est pas visible
+            des patients. Il n'est écrit nulle part ailleurs.
+        </div>
+
+        <div class="avertissement">
+            <strong>Ce n'est pas le QR code des patients.</strong>
+            Celui des patients mène au questionnaire et reste sur le comptoir,
+            face au public. Celui-ci demande le code de l'équipe.
+        </div>
+
+        <footer>Ces chiffres ne prouvent aucun acte vaccinal : le compte exact des patients vaccinés sort de la facturation. Les doses saisies sont un plancher, jamais un total. La page porte ses propres réserves de lecture, et le rapport aussi.</footer>
+
+    </div>
+
+</body>
+</html>

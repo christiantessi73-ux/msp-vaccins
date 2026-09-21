@@ -380,13 +380,20 @@ archivé : plus rien ne lui écrit.
 
 ### 3. Le QR code de l'équipe
 
-Ouvrir `affiche-equipe.html` **depuis le dépôt**, en local, et l'imprimer :
-elle porte les deux QR codes de l'équipe, celui de la saisie des doses et celui
-des indicateurs. À afficher au comptoir et au cabinet, **hors de vue des
-patients**. Ce ne sont pas les QR codes du questionnaire.
+Deux affiches, à ouvrir **depuis le dépôt**, en local, et à imprimer :
 
-Cette affiche n'est **pas publiée sur le site**, au même titre que l'affiche des
-patients : elle figure dans la liste d'exclusions du miroir.
+- `affiche-saisie.html` — le QR de la saisie des doses, pour le comptoir et le
+  cabinet, partout où l'on vaccine ;
+- `affiche-indicateurs.html` — le QR des indicateurs, pour les médecins.
+
+Séparées parce qu'elles ne vont pas au même mur : une affiche qui porte un QR
+inutile à l'endroit où elle est punaisée invite à scanner le mauvais.
+
+À afficher **hors de vue des patients**. Ce ne sont pas les QR codes du
+questionnaire.
+
+Elles ne sont **pas publiées sur le site**, au même titre que l'affiche des
+patients : elles figurent dans la liste d'exclusions du miroir.
 
 > Ordre à respecter si un fichier déjà en ligne doit disparaître : **le retirer
 > du dépôt d'abord, l'exclure ensuite**. Dans lftp, une exclusion vaut aussi
