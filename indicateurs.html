@@ -154,6 +154,15 @@
            pas d'interlettrage démesuré, et de la place pour le voir. */
         .acte-code { max-width: 15rem; letter-spacing: 0.12em; }
 
+        .barre-rapport {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .barre-rapport .btn { flex-shrink: 0; }
+
         .btn-valider { background: var(--primary); color: #fff; }
         .btn-valider:disabled { background: var(--border-color); color: var(--text-gray); }
         @media (hover: hover) {
@@ -201,6 +210,19 @@
         </section>
 
         <div id="bloc-donnees" hidden>
+
+            <section class="section-card barre-rapport">
+                <div>
+                    <h2 style="margin-bottom:0.2rem;">Rapport d'activité</h2>
+                    <p style="color: var(--text-gray); font-size: 0.9rem; margin:0;">
+                        Tous les chiffres ci-dessous, avec les précautions de lecture,
+                        dans un document que Word ouvre directement.
+                    </p>
+                </div>
+                <button class="btn btn-valider" id="btn-rapport">
+                    <i class="ph ph-file-doc"></i> Télécharger
+                </button>
+            </section>
 
             <section class="section-card">
                 <h2>Depuis le début</h2>
@@ -736,7 +758,244 @@
         }
 
 
+        /* Le rapport Word.
+
+           La page est statique : elle ne peut pas fabriquer un vrai .docx,
+           qui est une archive ZIP, sans embarquer une bibliotheque. On
+           produit donc du HTML que Word ouvre nativement, servi en
+           application/msword sous l'extension .doc. Word l'ouvre sans rien
+           installer, et un « Enregistrer sous » le convertit en .docx.
+
+           Des tableaux, pas de graphiques : Word affiche mal les images
+           integrees a une page web, et c'est un tableau qu'on cite dans un
+           rapport de toute facon. */
+
+        let dernierEtat = null;
+
+        /* Dans un document qui sort de la MSP, un effectif sous 5 devient
+           « moins de 5 ».
+
+           Sur l'ecran interne, ces cases restent lisibles : c'est l'equipe
+           qui les produit. Ici le document part a l'Assurance Maladie, et a
+           cette echelle, dans une seule officine, « 1 » sur une tranche d'age
+           un mois donne redevient quelqu'un. */
+        function masquer(valeur) {
+            const v = Number(valeur) || 0;
+            return (v > 0 && v < SEUIL_FRAGILE) ? 'moins de ' + SEUIL_FRAGILE : nombre(v);
+        }
+
+        function periode(mois) {
+            if (mois.length === 0) return 'aucune donnée';
+            if (mois.length === 1) return moisLisible(mois[0]);
+            return 'de ' + moisLisible(mois[0]) + ' à ' + moisLisible(mois[mois.length - 1]);
+        }
+
+        function ligneTableau(cellules, entete) {
+            const balise = entete ? 'th' : 'td';
+            return '<tr>' + cellules.map(function (c, i) {
+                return '<' + balise + ' style="border:1px solid #9bb3bd;padding:5pt 7pt;'
+                     + (i === 0 ? 'text-align:left;' : 'text-align:right;')
+                     + (entete ? 'background:#e8f0f3;font-weight:bold;' : '')
+                     + '">' + c + '</' + balise + '>';
+            }).join('') + '</tr>';
+        }
+
+        function tableau(entetes, lignes) {
+            return '<table style="border-collapse:collapse;width:100%;'
+                 + 'font-size:10pt;margin:6pt 0 14pt;">'
+                 + ligneTableau(entetes, true)
+                 + lignes.map(function (l) { return ligneTableau(l, false); }).join('')
+                 + '</table>';
+        }
+
+        function construireRapport(etat) {
+            const mois = Object.keys(etat.indicateurs || {}).sort();
+
+            const t = { completes: 0, recommandes: 0, faits: 0, verif: 0, restants: 0 };
+            const parTranche = { '11-24': 0, '25-44': 0, '45-64': 0, '65+': 0 };
+            mois.forEach(function (m) {
+                const l = etat.indicateurs[m] || {};
+                t.completes  += Number(l.completes) || 0;
+                t.recommandes += Number(l.recommandes) || 0;
+                t.faits      += Number(l.faits) || 0;
+                t.verif      += Number(l.verif) || 0;
+                t.restants   += Number(l.restants) || 0;
+                TRANCHES.forEach(function (tr) {
+                    parTranche[tr[0]] += Number(l[tr[0]]) || 0;
+                });
+            });
+
+            const dosesParVaccin = {};
+            let totalDoses = 0;
+            VACCINS.forEach(function (v) { dosesParVaccin[v] = 0; });
+            Object.keys(etat.actes || {}).forEach(function (m) {
+                const d = etat.actes[m] || {};
+                VACCINS.forEach(function (v) {
+                    const n = Number(d[v]) || 0;
+                    dosesParVaccin[v] += n;
+                    totalDoses += n;
+                });
+            });
+
+            const aujourdhui = new Date().toLocaleDateString('fr-FR',
+                { day: 'numeric', month: 'long', year: 'numeric' });
+
+            let html = '<h1 style="font-size:17pt;margin:0 0 3pt;">'
+                     + 'Prévention vaccinale</h1>'
+                     + '<p style="font-size:12pt;color:#1B7A8A;margin:0 0 2pt;">'
+                     + 'MSP Route de Vienne</p>'
+                     + '<p style="font-size:10pt;color:#555;margin:0 0 18pt;">'
+                     + 'Période : ' + periode(mois) + '. Document édité le '
+                     + aujourdhui + '.</p>';
+
+            html += '<h2 style="font-size:13pt;color:#14303D;margin:16pt 0 2pt;">'
+                  + '1. Synthèse sur la période</h2>'
+                  + tableau(['Indicateur', 'Valeur'], [
+                        ['Questionnaires complétés', masquer(t.completes)],
+                        ['Vaccins recommandés par questionnaire',
+                         decimal(t.recommandes, t.completes)],
+                        ['Vaccins déjà faits, d\'après les patients',
+                         pourcent(t.faits, t.recommandes)],
+                        ['Vaccins à vérifier avec le carnet',
+                         pourcent(t.verif, t.recommandes)],
+                        ['Vaccins restant à faire', masquer(t.restants)],
+                        ['Doses administrées à la MSP', masquer(totalDoses)]
+                    ]);
+
+            html += '<h2 style="font-size:13pt;color:#14303D;margin:16pt 0 2pt;">'
+                  + '2. Qui fait le point</h2>'
+                  + tableau(['Tranche d\'âge', 'Questionnaires', 'Part'],
+                        TRANCHES.map(function (tr) {
+                            return [tr[1], masquer(parTranche[tr[0]]),
+                                    pourcent(parTranche[tr[0]], t.completes)];
+                        }));
+
+            const vus = VACCINS.filter(function (v) { return dosesParVaccin[v] > 0; })
+                               .sort(function (a, b) {
+                                   return dosesParVaccin[b] - dosesParVaccin[a];
+                               });
+            html += '<h2 style="font-size:13pt;color:#14303D;margin:16pt 0 2pt;">'
+                  + '3. Vaccins administrés à la MSP</h2>';
+            html += vus.length
+                  ? tableau(['Vaccin', 'Doses'],
+                        vus.map(function (v) { return [v, masquer(dosesParVaccin[v])]; })
+                            .concat([['<b>Total</b>', '<b>' + masquer(totalDoses) + '</b>']]))
+                  : '<p style="font-size:10pt;">Aucune dose saisie sur la période.</p>';
+
+            html += '<h2 style="font-size:13pt;color:#14303D;margin:16pt 0 2pt;">'
+                  + '4. Mois par mois</h2>'
+                  + tableau(['Mois', 'Complétés', 'Moy. vaccins', 'Déjà faits',
+                             'À vérifier', 'Restant à faire', 'Doses'],
+                        mois.map(function (m) {
+                            const l = etat.indicateurs[m] || {};
+                            const d = (etat.actes && etat.actes[m]) ? etat.actes[m] : {};
+                            let dm = 0;
+                            VACCINS.forEach(function (v) { dm += Number(d[v]) || 0; });
+                            return [moisLisible(m),
+                                    masquer(l.completes),
+                                    decimal(Number(l.recommandes) || 0, Number(l.completes) || 0),
+                                    pourcent(Number(l.faits) || 0, Number(l.recommandes) || 0),
+                                    pourcent(Number(l.verif) || 0, Number(l.recommandes) || 0),
+                                    masquer(l.restants),
+                                    masquer(dm)];
+                        }));
+
+            /* Ces précautions ne sont pas de la prudence de style : chacune
+               correspond à une lecture fausse que ces chiffres appellent, et
+               qu'un rapport laisserait passer sans elles. */
+            html += '<h2 style="font-size:13pt;color:#14303D;margin:16pt 0 2pt;">'
+                  + '5. Précautions de lecture</h2>'
+                  + '<div style="font-size:10pt;line-height:1.45;">'
+
+                  + '<p><b>« Vaccins déjà faits » n\'est pas une couverture '
+                  + 'vaccinale.</b> Ce n\'est pas la part de patients vaccinés dans '
+                  + 'une population, mais la part des vaccins recommandés par ce '
+                  + 'questionnaire que les répondants déclarent avoir déjà reçus : '
+                  + 'des vaccins et non des personnes, les répondants et non la '
+                  + 'patientèle, du déclaratif et non un relevé de carnet.</p>'
+
+                  + '<p><b>Le chiffre est de plus sous-estimé.</b> Un patient qui ne '
+                  + 'renseigne aucun statut laisse tous ses vaccins en « restant à '
+                  + 'faire ». C\'est pourquoi « à vérifier » est compté à part : il '
+                  + 'mesure la part de patients qui ignorent leur propre situation.</p>'
+
+                  + '<p><b>Les doses administrées sont un plancher, jamais un '
+                  + 'total.</b> Elles sont saisies à la main par l\'équipe, entre deux '
+                  + 'patients. Une dose non saisie est perdue pour ce rapport, pas '
+                  + 'pour le patient. Le compte exact reste celui de la '
+                  + 'facturation.</p>'
+
+                  + '<p><b>Les doses et les questionnaires ne se divisent pas l\'un '
+                  + 'par l\'autre.</b> Rien ne relie une dose administrée au comptoir '
+                  + 'à un questionnaire : le QR code de l\'équipe est le même pour '
+                  + 'tous et ne porte aucune trace du bilan d\'un patient. C\'est '
+                  + 'délibéré, et c\'est ce qui maintient ces compteurs anonymes. Les '
+                  + 'deux séries se lisent côte à côte, jamais en rapport.</p>'
+
+                  + '<p><b>Les effectifs inférieurs à ' + SEUIL_FRAGILE + ' sont '
+                  + 'remplacés par « moins de ' + SEUIL_FRAGILE +' ».</b> À cette '
+                  + 'échelle, dans une seule officine, un chiffre isolé redevient '
+                  + 'identifiant. Pour affiner, regrouper les mois ou les tranches '
+                  + 'plutôt que de publier la case.</p>'
+
+                  + '<p><b>Aucune donnée individuelle n\'existe.</b> Le dispositif '
+                  + 'n\'enregistre que des compteurs mensuels : il n\'existe nulle '
+                  + 'part de ligne « un patient ».</p>'
+                  + '</div>';
+
+            html += '<p style="font-size:9pt;color:#666;margin-top:20pt;'
+                  + 'border-top:1px solid #ccc;padding-top:6pt;">'
+                  + 'Source : questionnaire de recommandations vaccinales, '
+                  + 'msp-vaccins.fr. Compteurs agrégés, aucune donnée individuelle.</p>';
+
+            return html;
+        }
+
+        function genererRapport() {
+            if (!dernierEtat) return;
+
+            /* L'en-tête que Word attend : sans la déclaration d'espace de
+               noms Office et le bloc WordDocument, il ouvre le fichier comme
+               une page web au lieu d'un document. */
+            const doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office"'
+                      + ' xmlns:w="urn:schemas-microsoft-com:office:word"'
+                      + ' xmlns="http://www.w3.org/TR/REC-html40"><head>'
+                      + '<meta charset="utf-8">'
+                      + '<title>Prévention vaccinale - MSP Route de Vienne</title>'
+                      + '<!--[if gte mso 9]><xml><w:WordDocument>'
+                      + '<w:View>Print</w:View><w:Zoom>100</w:Zoom>'
+                      + '</w:WordDocument></xml><![endif]-->'
+                      + '<style>@page { size: 21cm 29.7cm; margin: 2cm; }'
+                      + ' body { font-family: Calibri, Arial, sans-serif;'
+                      + ' font-size: 11pt; color: #222; }'
+                      + ' h1, h2 { font-family: Calibri, Arial, sans-serif; }</style>'
+                      + '</head><body>' + construireRapport(dernierEtat)
+                      + '</body></html>';
+
+            const mois = Object.keys(dernierEtat.indicateurs || {}).sort();
+            const nom = 'rapport-vaccins-msp'
+                      + (mois.length ? '-' + mois[mois.length - 1] : '') + '.doc';
+
+            // Le préfixe BOM : sans lui, Word lit le fichier en ANSI et les
+            // accents deviennent illisibles.
+            const blob = new Blob(['﻿' + doc],
+                                  { type: 'application/msword;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nom;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Libéré au tour suivant : révoquer tout de suite annulerait le
+            // téléchargement sur certains navigateurs.
+            setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        }
+
         function afficher(etat) {
+            dernierEtat = etat;
             const mois = Object.keys(etat.indicateurs || {}).sort();
 
             // Totaux depuis le début
@@ -901,6 +1160,9 @@
                            + "en msp-vaccins.fr, vous n'êtes pas sur le vrai site.", false);
             });
         }
+
+        document.getElementById('btn-rapport')
+                .addEventListener('click', genererRapport);
 
         btnDeverrouiller.addEventListener('click', consulter);
         codeInput.addEventListener('keydown', function (e) {

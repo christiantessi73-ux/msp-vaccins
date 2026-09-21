@@ -226,6 +226,25 @@ que la clé partagée : il évite la fausse manœuvre — un patient qui scanne
 l'affiche par curiosité — pas quelqu'un de déterminé. Il n'a rien à protéger :
 `acte.html` ne sait qu'ajouter des doses.
 
+### Le rapport Word
+
+`indicateurs.html` produit un document téléchargeable, que Word ouvre
+directement. La page étant statique, ce n'est pas un vrai `.docx` — une
+archive ZIP demanderait une bibliothèque — mais du HTML servi en
+`application/msword` sous l'extension `.doc`. Un « Enregistrer sous » dans
+Word le convertit en `.docx` si le destinataire l'exige.
+
+Des tableaux, pas de graphiques : Word affiche mal les images intégrées à une
+page web, et c'est un tableau qu'on cite dans un rapport.
+
+**Le document masque les effectifs inférieurs à 5**, là où l'écran interne les
+affiche. La différence est voulue : l'écran est lu par l'équipe qui produit ces
+chiffres, le document sort de la MSP.
+
+Il porte aussi ses **précautions de lecture** en dernière section. Elles ne sont
+pas de la prudence de style : chacune correspond à une lecture fausse que ces
+chiffres appellent, et qu'un rapport laisserait passer sans elles.
+
 ## Deux règles à ne pas perdre de vue
 
 **Ne jamais publier une case comptant moins de 5 personnes.** Un « 1 » sur une
