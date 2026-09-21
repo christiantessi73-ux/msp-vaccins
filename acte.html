@@ -346,9 +346,13 @@
                                 + "rien n'a été enregistré. Redemandez-le.");
                     return;
                 }
-                if (reponse.indexOf('ok') === -1) {
+                // Même exigence pour l'enregistrement : « acte-ok », et rien
+                // d'autre. Sans ce jeton, une saisie perdue passerait pour un
+                // succès.
+                if (reponse.indexOf('acte-ok') === -1) {
                     afficher("Le classeur n'a pas répondu comme attendu (« " + reponse
-                           + " ») : les doses sont toujours affichées, réessayez.", false);
+                           + " ») : rien n'a été compté, les doses sont toujours "
+                           + "affichées. Prévenez avant de recommencer.", false);
                     rafraichir();
                     return;
                 }
@@ -413,9 +417,15 @@
                     codeInput.focus();
                     return;
                 }
-                if (reponse.indexOf('ok') === -1) {
+                /* Le jeton exact, pas un « ok » quelconque : une version
+                   antérieure du script répond « ok » à un événement qu'elle
+                   ne connaît pas, ce qui ouvrirait la page avec n'importe
+                   quel code. */
+                if (reponse.indexOf('code-ok') === -1) {
                     afficherCode("Le classeur n'a pas répondu comme attendu "
-                               + "(« " + reponse + " ») : réessayez.", false);
+                               + "(« " + reponse + " »). Le script n'est "
+                               + "peut-être pas à jour : prévenez la personne "
+                               + "qui gère le dispositif.", false);
                     return;
                 }
 

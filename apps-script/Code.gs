@@ -145,7 +145,7 @@ function doPost(e) {
    */
   if (data.e === 'code') {
     return ContentService.createTextOutput(
-      data.pin === PIN_SOIGNANT ? 'ok' : 'code-refuse');
+      data.pin === PIN_SOIGNANT ? 'code-ok' : 'code-refuse');
   }
 
   var verrou = LockService.getScriptLock();
@@ -156,12 +156,25 @@ function doPost(e) {
     return ContentService.createTextOutput('occupe');
   }
 
+  /* Chaque événement répond par un jeton qui lui est propre, et une version
+   * antérieure du script ne peut pas le produire : elle ne connaît pas la
+   * branche, tombe au bout de la fonction et répondait « ok » à tout.
+   *
+   * C'est ce qui rendait la fenêtre de déploiement dangereuse — site publié
+   * avant le script redéployé. acte.html se serait déverrouillée avec
+   * n'importe quel code, et aurait annoncé « doses enregistrées » sans que
+   * rien ne soit compté. Un jeton par événement transforme ce silence en
+   * erreur franche à l'écran.
+   */
+  var reponse = 'inconnu';
+
   try {
     var feuille = obtenirFeuille();
     var ligne = obtenirLigneDuMois(feuille);
 
     if (data.e === 'debut') {
       incrementer(feuille, ligne, 'Questionnaires commencés', 1);
+      reponse = 'debut-ok';
 
     } else if (data.e === 'fin') {
       if (data.complet) {
@@ -179,20 +192,24 @@ function doPost(e) {
         ventiler(feuille, ligne, 'Vaccins à vérifier', data.verif, nb);
         ventiler(feuille, ligne, 'Vaccins restant à faire', data.restants, nb);
       }
+      reponse = 'fin-ok';
     } else if (data.e === 'pdf') {
       incrementer(feuille, ligne, 'Impressions PDF', 1);
+      reponse = 'pdf-ok';
 
     } else if (data.e === 'acte') {
       // Vaccins administrés, saisis par l'équipe depuis acte.html.
       enregistrerActes(data.v);
+      reponse = 'acte-ok';
     }
   } catch (err) {
     console.error(err);
+    reponse = 'erreur';
   } finally {
     verrou.releaseLock();
   }
 
-  return ContentService.createTextOutput('ok');
+  return ContentService.createTextOutput(reponse);
 }
 
 /**
