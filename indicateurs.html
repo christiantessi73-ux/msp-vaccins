@@ -113,37 +113,11 @@
            Deux barres par mois, jamais empilées : empiler additionnerait
            des choses qui ne s'additionnent pas et suggérerait que les
            doses sortent du besoin détecté. */
-        .compare { display: grid; gap: 1.1rem; margin-top: 1rem; }
-        .compare-mois {
-            display: grid;
-            grid-template-columns: minmax(6rem, 8rem) 1fr;
-            gap: 0.75rem;
-            align-items: center;
-        }
-        .compare-nom { font-size: 0.9rem; font-weight: 600; }
-        .compare-paire { display: grid; gap: 0.3rem; }
-        .compare-rang {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 0.55rem;
-            align-items: center;
-        }
-        .compare-piste {
-            background: #eef4fb;
-            border-radius: 4px;
-            height: 1.1rem;
-            overflow: hidden;
-        }
-        .compare-part { height: 100%; border-radius: 4px; min-width: 2px; }
-        .compare-part.besoin { background: var(--primary); }
-        .compare-part.doses { background: #EB6834; }
-        .compare-val {
-            font-weight: 700;
-            font-variant-numeric: tabular-nums;
-            min-width: 2.5ch;
-            text-align: right;
-            font-size: 0.9rem;
-        }
+        /* Le graphique garde sa taille et le conteneur defile : le reduire
+           pour le faire entrer rendrait les mois illisibles, ce qui est
+           precisement ce qu'on vient y lire. */
+        .compare { margin-top: 1rem; overflow-x: auto; }
+        .compare svg { display: block; }
 
         .cles { display: flex; flex-wrap: wrap; gap: 1.1rem; margin-top: 0.75rem; }
         .cle { display: flex; align-items: center; gap: 0.45rem; font-size: 0.88rem; }
@@ -269,6 +243,10 @@
                     <span class="cle"><span class="pastille doses"></span>
                         Doses administrées à la MSP</span>
                 </div>
+                <p style="color: var(--text-gray); font-size: 0.87rem; margin: 0.5rem 0 0;">
+                    Survolez une colonne pour lire sa valeur. Le détail chiffré est
+                    dans le tableau ci-dessous.
+                </p>
                 <div class="compare" id="compare"></div>
                 <p class="vide" id="compare-vide" hidden>Aucun relevé pour l'instant.</p>
             </section>
@@ -626,46 +604,121 @@
             }).join('');
         }
 
-        /* Deux séries par mois, à la même échelle.
-           Une échelle par série ferait paraître 3 doses aussi hautes que
-           120 vaccins à faire : la comparaison serait exactement fausse. */
+        /* Le rapprochement mensuel, en colonnes groupées.
+
+           Le temps va de gauche à droite, du plus ancien au plus récent :
+           une tendance se lit dans ce sens, et l'ordre inverse du tableau
+           (le mois en cours d'abord) n'a de sens que pour consulter une
+           ligne, pas pour suivre une évolution.
+
+           Deux colonnes par mois, jamais empilées : empiler additionnerait
+           des choses qui ne s'additionnent pas. */
+
+        const MOIS_COURT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
+                            'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+        /* Un maximum d'axe qui tombe juste, avec quatre graduations.
+           « 132 » en haut de l'axe se lit moins vite que « 150 » : l'échelle
+           doit s'effacer, c'est la hauteur des colonnes qu'on compare. */
+        function maxJoli(valeur) {
+            if (!(valeur > 0)) return 4;
+            const brut = valeur / 4;
+            const ordre = Math.pow(10, Math.floor(Math.log10(brut)));
+            const pas = [1, 2, 2.5, 5, 10].map(function (m) { return m * ordre; })
+                        .find(function (m) { return m >= brut; }) || 10 * ordre;
+            return pas * Math.ceil(valeur / pas);
+        }
+
         function rapprochement(mois, etat) {
             const cible = document.getElementById('compare');
+
             const lignes = mois.map(function (m) {
                 const l = etat.indicateurs[m] || {};
                 const d = (etat.actes && etat.actes[m]) ? etat.actes[m] : {};
                 let doses = 0;
                 VACCINS.forEach(function (v) { doses += Number(d[v]) || 0; });
-                return [m, Number(l.restants) || 0, doses];
+                return { mois: m, besoin: Number(l.restants) || 0, doses: doses };
             });
 
             document.getElementById('compare-vide').hidden = (lignes.length > 0);
+            if (lignes.length === 0) { cible.innerHTML = ''; return; }
 
-            const max = lignes.reduce(function (acc, l) {
-                return Math.max(acc, l[1], l[2]);
+            /* La largeur d'un groupe s'adapte : assez serrée pour que douze
+               mois tiennent, assez large pour que trois mois n'aient pas
+               l'air perdus. Au-delà, le conteneur défile. */
+            const dispo = (cible.clientWidth || 700) - 70;
+            const GROUPE = Math.max(56, Math.min(120, dispo / lignes.length));
+            const BARRE = Math.min(24, GROUPE * 0.36);
+
+            const MG = 48, MD = 14, MH = 16, MB = 48;
+            const HP = 170;
+            const L = MG + GROUPE * lignes.length + MD;
+            const H = MH + HP + MB;
+
+            const pic = lignes.reduce(function (m, l) {
+                return Math.max(m, l.besoin, l.doses);
             }, 0);
+            const haut = maxJoli(pic);
+            const y = function (v) { return MH + HP - (HP * v / haut); };
 
-            /* La pastille devant chaque barre : à deux séries superposées,
-               retrouver laquelle est laquelle en remontant à la légende du
-               haut coûte un aller-retour du regard à chaque ligne. */
-            const rang = function (valeur, classe) {
-                const largeur = max > 0 ? (100 * valeur / max) : 0;
-                return '<span class="compare-rang">'
-                     + '<span class="pastille ' + classe + '"></span>'
-                     + '<span class="compare-piste"><span class="compare-part ' + classe
-                     + '" style="width:' + largeur.toFixed(1) + '%"></span></span>'
-                     + '<span class="compare-val">' + effectif(valeur) + '</span>'
-                     + '</span>';
-            };
+            let grille = '';
+            for (let i = 0; i <= 4; i++) {
+                const v = haut * i / 4;
+                const yy = y(v).toFixed(1);
+                grille += '<line x1="' + MG + '" y1="' + yy + '" x2="' + (L - MD)
+                        + '" y2="' + yy + '" stroke="#e6edf0" stroke-width="1"></line>'
+                        + '<text x="' + (MG - 8) + '" y="' + (Number(yy) + 4)
+                        + '" text-anchor="end" font-size="11" fill="#666666">'
+                        + nombre(Math.round(v)) + '</text>';
+            }
 
-            cible.innerHTML = lignes.map(function (l) {
-                return '<div class="compare-mois">'
-                     + '<span class="compare-nom">' + echapper(moisLisible(l[0])) + '</span>'
-                     + '<span class="compare-paire">'
-                     + rang(l[1], 'besoin') + rang(l[2], 'doses')
-                     + '</span></div>';
-            }).join('');
+            let colonnes = '';
+            let etiquettes = '';
+            let anneeVue = '';
+
+            lignes.forEach(function (l, i) {
+                const gx = MG + GROUPE * i;
+                const centre = gx + GROUPE / 2;
+                const x1 = centre - BARRE - 2;
+                const x2 = centre + 2;
+
+                const barre = function (x, v, couleur, nom) {
+                    const hauteur = Math.max(v > 0 ? 2 : 0, HP * v / haut);
+                    return '<rect x="' + x.toFixed(1) + '" y="' + (y(v)).toFixed(1)
+                         + '" width="' + BARRE.toFixed(1) + '" height="' + hauteur.toFixed(1)
+                         + '" fill="' + couleur + '" rx="2"><title>'
+                         + echapper(moisLisible(l.mois)) + ' — ' + nom + ' : ' + v
+                         + '</title></rect>';
+                };
+
+                colonnes += barre(x1, l.besoin, 'var(--primary)', 'restant à faire')
+                          + barre(x2, l.doses, '#EB6834', 'doses administrées');
+
+                /* L'année ne s'écrit qu'au premier mois et à chaque
+                   changement : la répéter douze fois serait du bruit. */
+                const p = String(l.mois).split('-');
+                const annee = p[0];
+                etiquettes += '<text x="' + centre.toFixed(1) + '" y="' + (MH + HP + 18)
+                            + '" text-anchor="middle" font-size="11" fill="#333333">'
+                            + (MOIS_COURT[parseInt(p[1], 10) - 1] || l.mois) + '</text>';
+                if (annee !== anneeVue) {
+                    etiquettes += '<text x="' + centre.toFixed(1) + '" y="' + (MH + HP + 33)
+                                + '" text-anchor="middle" font-size="10" font-weight="700"'
+                                + ' fill="#666666">' + annee + '</text>';
+                    anneeVue = annee;
+                }
+            });
+
+            cible.innerHTML = '<svg width="' + Math.round(L) + '" height="' + H
+                            + '" viewBox="0 0 ' + Math.round(L) + ' ' + H + '" role="img"'
+                            + ' aria-label="Vaccins restant à faire et doses administrées,'
+                            + ' par mois">'
+                            + grille
+                            + '<line x1="' + MG + '" y1="' + (MH + HP) + '" x2="' + (L - MD)
+                            + '" y2="' + (MH + HP) + '" stroke="#bfd2d8" stroke-width="1"></line>'
+                            + colonnes + etiquettes + '</svg>';
         }
+
 
         function afficher(etat) {
             const mois = Object.keys(etat.indicateurs || {}).sort();
@@ -724,7 +777,7 @@
             document.getElementById('doses-vide').hidden = (dosesVues.length > 0);
             barres(document.getElementById('barres-doses'), dosesVues, 'doses');
 
-            rapprochement(mois.slice().reverse(), etat);
+            rapprochement(mois, etat);
 
             // Mois par mois, du plus récent au plus ancien : on consulte le
             // mois en cours bien plus souvent que celui d'il y a deux ans.
