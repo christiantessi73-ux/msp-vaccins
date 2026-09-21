@@ -229,7 +229,10 @@ l'affiche par curiosité — pas quelqu'un de déterminé. Il n'a rien à proté
 ### Le rapport Word
 
 `indicateurs.html` produit un document téléchargeable, que Word ouvre
-directement. La page étant statique, ce n'est pas un vrai `.docx` — une
+directement, **sur la période choisie** : deux listes déroulantes bornent
+l'intervalle, et tout le document suit — totaux, camembert, graphiques et
+tableau mensuel. Le nom du fichier porte les bornes, parce que plusieurs
+rapports finissent dans le même dossier. La page étant statique, ce n'est pas un vrai `.docx` — une
 archive ZIP demanderait une bibliothèque — mais du HTML servi en
 `application/msword` sous l'extension `.doc`. Un « Enregistrer sous » dans
 Word le convertit en `.docx` si le destinataire l'exige.

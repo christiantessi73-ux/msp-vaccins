@@ -163,6 +163,25 @@
         }
         .barre-rapport .btn { flex-shrink: 0; }
 
+        .periode {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.92rem;
+        }
+        .periode label { display: inline; margin: 0; font-weight: 400; }
+        .periode select {
+            font: inherit;
+            padding: 0.4rem 0.6rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: #fff;
+            color: var(--text-dark);
+            max-width: 12rem;
+        }
+        .periode select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
         .btn-valider { background: var(--primary); color: #fff; }
         .btn-valider:disabled { background: var(--border-color); color: var(--text-gray); }
         @media (hover: hover) {
@@ -214,10 +233,17 @@
             <section class="section-card barre-rapport">
                 <div>
                     <h2 style="margin-bottom:0.2rem;">Rapport d'activité</h2>
-                    <p style="color: var(--text-gray); font-size: 0.9rem; margin:0;">
-                        Tous les chiffres ci-dessous, avec les précautions de lecture,
-                        dans un document que Word ouvre directement.
+                    <p style="color: var(--text-gray); font-size: 0.9rem; margin:0 0 0.8rem;">
+                        Les chiffres et les graphiques de la période choisie, avec les
+                        précautions de lecture, dans un document que Word ouvre
+                        directement.
                     </p>
+                    <div class="periode">
+                        <label for="periode-debut">De</label>
+                        <select id="periode-debut"></select>
+                        <label for="periode-fin">à</label>
+                        <select id="periode-fin"></select>
+                    </div>
                 </div>
                 <button class="btn btn-valider" id="btn-rapport">
                     <i class="ph ph-file-doc"></i> Télécharger
@@ -890,8 +916,25 @@
             const svgComp = bloc('rapport-compare');
             const vide = bloc('rapport-vide');
 
+            /* donneesAge porte la répartition de toute la période chargée :
+               on la recalcule sur l'intervalle retenu, sinon le camembert du
+               rapport contredirait ses propres tableaux. */
+            const anciennes = donneesAge;
+            const parTranche = { '11-24': 0, '25-44': 0, '45-64': 0, '65+': 0 };
+            Object.keys(etat.indicateurs || {}).forEach(function (m) {
+                const l = etat.indicateurs[m] || {};
+                TRANCHES.forEach(function (tr) {
+                    parTranche[tr[0]] += Number(l[tr[0]]) || 0;
+                });
+            });
+            donneesAge = TRANCHES.map(function (tr) {
+                return [tr[1], parTranche[tr[0]]];
+            });
+
             dessinerCamembert({ svg: svgAge, parts: bloc('rapport-parts'),
                                 vide: vide, infographie: true });
+
+            donneesAge = anciennes;
 
             const mois = Object.keys(etat.indicateurs || {}).sort();
             rapprochement(mois, etat, { cible: svgComp, vide: vide, largeur: 820 });
@@ -968,6 +1011,74 @@
         }
 
         let dernierEtat = null;
+
+        const selDebut = document.getElementById('periode-debut');
+        const selFin = document.getElementById('periode-fin');
+
+        /* L'union des deux feuilles : un mois peut porter des doses sans
+           questionnaire, et l'inverse. Le proposer quand même évite qu'une
+           période choisie laisse de côté des doses réellement administrées. */
+        function moisDisponibles(etat) {
+            const vus = {};
+            Object.keys(etat.indicateurs || {}).forEach(function (m) { vus[m] = 1; });
+            Object.keys(etat.actes || {}).forEach(function (m) { vus[m] = 1; });
+            return Object.keys(vus).filter(function (m) {
+                return /^[0-9]{4}-[0-9]{2}$/.test(m);
+            }).sort();
+        }
+
+        function remplirPeriode(etat) {
+            const mois = moisDisponibles(etat);
+            const options = mois.map(function (m) {
+                return '<option value="' + m + '">' + echapper(moisLisible(m)) + '</option>';
+            }).join('');
+
+            selDebut.innerHTML = options;
+            selFin.innerHTML = options;
+
+            const vide = (mois.length === 0);
+            selDebut.disabled = vide;
+            selFin.disabled = vide;
+            document.getElementById('btn-rapport').disabled = vide;
+
+            if (!vide) {
+                selDebut.value = mois[0];
+                selFin.value = mois[mois.length - 1];
+            }
+        }
+
+        /* Un intervalle qui se retourne ne produit rien : plutôt que de
+           refuser la saisie, on pousse l'autre borne. C'est ce que fait tout
+           sélecteur de dates, et ça évite un message d'erreur pour une
+           situation qui n'a pas lieu d'exister. */
+        function accorderBornes(modifie) {
+            if (selDebut.value && selFin.value && selDebut.value > selFin.value) {
+                if (modifie === 'debut') { selFin.value = selDebut.value; }
+                else { selDebut.value = selFin.value; }
+            }
+        }
+
+        selDebut.addEventListener('change', function () { accorderBornes('debut'); });
+        selFin.addEventListener('change', function () { accorderBornes('fin'); });
+
+        /* Les clés sont au format AAAA-MM : leur ordre alphabétique est leur
+           ordre chronologique, la comparaison de chaînes suffit. */
+        function etatSurPeriode(etat, debut, fin) {
+            const dans = function (m) { return m >= debut && m <= fin; };
+            const garder = function (source) {
+                const sortie = {};
+                Object.keys(source || {}).filter(dans).forEach(function (m) {
+                    sortie[m] = source[m];
+                });
+                return sortie;
+            };
+            return {
+                version: etat.version,
+                indicateurs: garder(etat.indicateurs),
+                actes: garder(etat.actes)
+            };
+        }
+
 
         /* Dans un document qui sort de la MSP, un effectif sous 5 devient
            « moins de 5 ».
@@ -1189,18 +1300,20 @@
             const bouton = document.getElementById('btn-rapport');
             bouton.disabled = true;
 
+            const retenu = etatSurPeriode(dernierEtat, selDebut.value, selFin.value);
+
             /* Si la conversion des graphiques échoue, le rapport part sans
                eux plutôt que pas du tout : un document en tableaux reste
                utilisable, une erreur ne l'est pas. */
-            graphiquesDuRapport(dernierEtat)
+            graphiquesDuRapport(retenu)
                 .catch(function () { return null; })
                 .then(function (images) {
-                    ecrireRapport(images);
+                    ecrireRapport(retenu, images);
                     bouton.disabled = false;
                 });
         }
 
-        function ecrireRapport(images) {
+        function ecrireRapport(retenu, images) {
 
             /* L'en-tête que Word attend : sans la déclaration d'espace de
                noms Office et le bloc WordDocument, il ouvre le fichier comme
@@ -1217,12 +1330,16 @@
                       + ' body { font-family: Calibri, Arial, sans-serif;'
                       + ' font-size: 11pt; color: #222; }'
                       + ' h1, h2 { font-family: Calibri, Arial, sans-serif; }</style>'
-                      + '</head><body>' + construireRapport(dernierEtat, images)
+                      + '</head><body>' + construireRapport(retenu, images)
                       + '</body></html>';
 
-            const mois = Object.keys(dernierEtat.indicateurs || {}).sort();
+            /* Le nom porte la période : plusieurs rapports finissent dans le
+               même dossier, et « rapport-vaccins-msp.doc (2) » ne dit rien. */
+            const bornes = moisDisponibles(retenu);
             const nom = 'rapport-vaccins-msp'
-                      + (mois.length ? '-' + mois[mois.length - 1] : '') + '.doc';
+                      + (bornes.length ? '-' + bornes[0] : '')
+                      + (bornes.length > 1 ? '-a-' + bornes[bornes.length - 1] : '')
+                      + '.doc';
 
             if (images && images.length) {
                 // MHTML : le document et ses images dans un même envoi.
@@ -1239,6 +1356,7 @@
 
         function afficher(etat) {
             dernierEtat = etat;
+            remplirPeriode(etat);
             const mois = Object.keys(etat.indicateurs || {}).sort();
 
             // Totaux depuis le début
