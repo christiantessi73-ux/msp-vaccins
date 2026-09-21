@@ -42,36 +42,15 @@
            valeurs proches. La MSP a demande un camembert, il est donc
            dessine - mais chaque part porte son pourcentage ET son effectif,
            ce qui rend la comparaison lisible sans passer par la surface. */
-        .camembert-bloc {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.75rem;
-            align-items: center;
-            margin-top: 1rem;
-        }
+        .camembert-bloc { margin-top: 1rem; }
         .camembert { flex: 0 0 auto; max-width: 100%; }
         .camembert svg { display: block; width: 100%; height: auto; }
 
-        /* En infographie, les etiquettes du dessin disent deja les noms et
-           les effectifs : la liste ferait doublon. */
-        .camembert-bloc.infographie { display: block; }
         .camembert-bloc.infographie .camembert { max-width: 100%; }
-        .camembert-bloc.infographie .camembert-parts { display: none; }
-        .camembert-parts { flex: 1 1 14rem; display: grid; gap: 0.5rem; min-width: 12rem; }
-        .camembert-part {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 0.55rem;
-            align-items: baseline;
-            font-size: 0.92rem;
-        }
-        .camembert-part .pastille { align-self: center; }
-        .camembert-part .part-nom { line-height: 1.3; }
-        .camembert-part .part-val {
-            font-weight: 700;
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-        }
+        /* Le detail sous le dessin, en tableau : le camembert montre la
+           forme de la repartition, les nombres se lisent alignes. */
+        .table-age { max-width: 26rem; margin: 0.5rem auto 0; }
+        .table-age td:first-child { display: flex; align-items: center; gap: 0.55rem; }
 
         /* Barres */
         .barres { display: grid; gap: 0.55rem; margin-top: 0.5rem; }
@@ -261,7 +240,9 @@
                 </p>
                 <div class="camembert-bloc" id="bloc-camembert">
                     <div class="camembert" id="camembert-age"></div>
-                    <div class="camembert-parts" id="parts-age"></div>
+                    <div class="tableau-enveloppe">
+                        <table class="table-age" id="parts-age"></table>
+                    </div>
                 </div>
                 <p class="vide" id="age-vide" hidden>Aucun questionnaire complété pour l'instant.</p>
             </section>
@@ -543,7 +524,10 @@
                    qui déborde de sa part est pire que pas de valeur. */
                 const tient = large >= 28;
                 if (tient) {
-                    const t = pointPolaire(CX, CY, (rInt + rExt) / 2, milieu);
+                    /* Le pourcentage se pose au premier tiers de la bande,
+                       et la pastille du repere ira sur le bord exterieur :
+                       au meme rayon, l'une masquait l'autre. */
+                    const t = pointPolaire(CX, CY, rInt + (rExt - rInt) * 0.38, milieu);
                     dedans += '<text x="' + t[0].toFixed(1) + '" y="' + (t[1] + 7).toFixed(1)
                             + '" text-anchor="middle" font-size="' + (infographie ? 22 : 16)
                             + '" font-weight="700" fill="#fff">'
@@ -553,7 +537,7 @@
                 if (infographie) {
                     const rad = (milieu - 90) * Math.PI / 180;
                     const aDroite = Math.cos(rad) >= 0;
-                    const pastille = pointPolaire(CX, CY, rExt * 0.82, milieu);
+                    const pastille = pointPolaire(CX, CY, rExt - 11, milieu);
                     const coude = pointPolaire(CX, CY, rExt + 26, milieu);
                     (aDroite ? droite : gauche).push({
                         y: coude[1],
@@ -562,8 +546,7 @@
                         aDroite: aDroite,
                         couleur: couleur,
                         titre: e[0],
-                        sous: effectif(e[1]) + (e[1] > 1 ? ' questionnaires' : ' questionnaire')
-                              + (tient ? '' : ' · ' + pourcent(e[1], total))
+                        sous: tient ? '' : pourcent(e[1], total)
                     });
                 }
                 angle += large;
@@ -589,6 +572,8 @@
                             + (l.y + 19).toFixed(1) + '" text-anchor="'
                             + (l.aDroite ? 'start' : 'end')
                             + '" font-size="14" fill="#666666">' + l.sous + '</text>';
+                    // Une part trop etroite pour porter son pourcentage le
+                    // voit rejoindre son etiquette ; sinon la ligne reste vide.
                 });
             });
 
@@ -610,14 +595,15 @@
                           + ' par tranche d\'âge">'
                           + secteurs + coeur + dedans + reperes + '</svg>';
 
-            parts.innerHTML = entrees.map(function (e, i) {
-                return '<div class="camembert-part">'
-                     + '<span class="pastille age' + (i % 4) + '"></span>'
-                     + '<span class="part-nom">' + echapper(e[0]) + '</span>'
-                     + '<span class="part-val">' + pourcent(e[1], total)
-                     + ' · ' + effectif(e[1]) + '</span>'
-                     + '</div>';
-            }).join('');
+            parts.innerHTML = "<thead><tr><th>Tranche d'âge</th>"
+                            + '<th>Questionnaires</th><th>Part</th></tr></thead><tbody>'
+                            + entrees.map(function (e, i) {
+                                return '<tr><td><span class="pastille age' + (i % 4)
+                                     + '"></span>' + echapper(e[0]) + '</td>'
+                                     + '<td>' + effectif(e[1]) + '</td>'
+                                     + '<td>' + pourcent(e[1], total) + '</td></tr>';
+                              }).join('')
+                            + '</tbody>';
         }
 
         // Le rendu change avec la largeur : on redessine plutôt que de
