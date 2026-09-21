@@ -139,8 +139,8 @@
         .compare-paire { display: grid; gap: 0.3rem; }
         .compare-rang {
             display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 0.6rem;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.55rem;
             align-items: center;
         }
         .compare-piste {
@@ -284,15 +284,6 @@
                 </div>
                 <div class="compare" id="compare"></div>
                 <p class="vide" id="compare-vide" hidden>Aucun relevé pour l'instant.</p>
-                <p class="legende">
-                    <strong>Ces deux barres se lisent côte à côte, jamais l'une
-                    divisée par l'autre.</strong> Rien ne relie une dose administrée
-                    au comptoir à un questionnaire : le QR code de l'équipe est le
-                    même pour tous et ne porte aucune trace du bilan d'un patient.
-                    C'est délibéré — c'est ce qui maintient ces compteurs anonymes.
-                    Le rapprochement montre un besoin et une activité sur un même
-                    mois, il n'attribue pas les doses à l'enquête.
-                </p>
             </section>
 
             <section class="section-card">
@@ -315,36 +306,9 @@
                 <p class="legende">
                     <i class="ph ph-warning-circle" aria-hidden="true"
                        style="color: var(--warning-text);"></i>
-                    Les nombres <span class="fragile">signalés ainsi</span> comptent moins
-                    de 5 personnes. Vous pouvez les consulter, mais
-                    <strong>ne les publiez jamais tels quels</strong> : à cette échelle,
-                    dans une seule officine, un chiffre redevient quelqu'un. Pour un
-                    rapport, regroupez les mois ou les tranches.
+                    Les nombres <span class="fragile">signalés ainsi</span> comptent
+                    moins de 5 personnes.
                 </p>
-            </section>
-
-            <section class="section-card">
-                <h2>Ce que ces chiffres ne disent pas</h2>
-                <p>Le questionnaire documente l'<strong>amont</strong> : l'action de
-                sensibilisation. Il ne prouve aucun acte vaccinal — le compte exact des
-                patients vaccinés sort de la facturation.</p>
-                <p>Les doses administrées et les questionnaires
-                <strong>ne se divisent pas l'un par l'autre</strong>. Un vaccin fait au
-                comptoir n'a pas forcément suivi un questionnaire, et rien dans le
-                dispositif ne permet de le savoir : c'est délibéré, et c'est ce qui
-                maintient ces compteurs anonymes. Les deux séries se lisent côte à côte.</p>
-                <p><strong>« Vaccins déjà faits » n'est pas une couverture
-                vaccinale.</strong> Ce n'est pas la part de patients vaccinés dans
-                une population : c'est la part des <em>vaccins recommandés par ce
-                questionnaire</em> que les répondants disent avoir déjà reçus. Trois
-                différences qui comptent — des vaccins et non des personnes, les
-                répondants et non la patientèle, du déclaratif et non un relevé de
-                carnet.</p>
-                <p style="margin-bottom:0">Ce chiffre est de plus
-                <strong>sous-estimé</strong> : un patient qui ne touche aucun bouton
-                laisse tous ses vaccins en « à faire ». Le dénominateur mêle donc du
-                vrai non-fait et de la non-réponse, et c'est pourquoi « à vérifier »
-                reste compté à part.</p>
             </section>
 
         </div>
@@ -472,6 +436,26 @@
 
         const COULEURS_AGE = ['#0E8FA8', '#4F72B7', '#EB6834', '#7A5195'];
 
+        /* Les étiquettes sortent du disque et se relient par une flèche.
+           Un pourcentage posé dans le secteur ne tient pas quand celui-ci est
+           étroit — et c'est justement celui qu'on cherche à lire. Dehors,
+           toutes les parts sont lisibles à la même taille. */
+        function poserEtiquettes(lignes, hauteur, ecart) {
+            // Deux parts voisines produisent deux étiquettes à la même
+            // hauteur, qui se chevauchent. On les écarte de proche en proche,
+            // puis on les ramène dans le cadre.
+            lignes.sort(function (a, b) { return a.y - b.y; });
+            for (let i = 1; i < lignes.length; i++) {
+                if (lignes[i].y - lignes[i - 1].y < ecart) {
+                    lignes[i].y = lignes[i - 1].y + ecart;
+                }
+            }
+            const debord = lignes.length ? lignes[lignes.length - 1].y - (hauteur - 12) : 0;
+            if (debord > 0) lignes.forEach(function (l) { l.y -= debord; });
+            lignes.forEach(function (l) { l.y = Math.max(14, l.y); });
+            return lignes;
+        }
+
         function camembert(entrees) {
             const total = entrees.reduce(function (s, e) { return s + e[1]; }, 0);
             document.getElementById('age-vide').hidden = (total > 0);
@@ -485,24 +469,63 @@
                 return;
             }
 
-            const T = 200, R = 92, C = T / 2;
+            const L = 330, H = 230, CX = 165, CY = 112, R = 84;
             let angle = 0;
             let chemins = '';
+            const gauche = [], droite = [];
 
             entrees.forEach(function (e, i) {
                 if (e[1] <= 0) return;
                 const fin = angle + 360 * e[1] / total;
-                chemins += '<path d="' + secteur(C, C, R, angle, fin) + '" fill="'
-                         + COULEURS_AGE[i % COULEURS_AGE.length] + '" stroke="#fff"'
-                         + ' stroke-width="2"><title>' + echapper(e[0]) + ' : '
-                         + e[1] + '</title></path>';
+                const couleur = COULEURS_AGE[i % COULEURS_AGE.length];
+
+                chemins += '<path d="' + secteur(CX, CY, R, angle, fin) + '" fill="'
+                         + couleur + '" stroke="#fff" stroke-width="2">'
+                         + '<title>' + echapper(e[0]) + ' : ' + e[1] + '</title></path>';
+
+                const milieu = (angle + fin) / 2;
+                const rad = (milieu - 90) * Math.PI / 180;
+                const aDroite = Math.cos(rad) >= 0;
+                (aDroite ? droite : gauche).push({
+                    y: CY + R * 1.06 * Math.sin(rad),
+                    ancreX: CX + R * Math.cos(rad),
+                    ancreY: CY + R * Math.sin(rad),
+                    coudeX: CX + R * 1.18 * Math.cos(rad),
+                    coudeY: CY + R * 1.18 * Math.sin(rad),
+                    aDroite: aDroite,
+                    couleur: couleur,
+                    texte: pourcent(e[1], total)
+                });
                 angle = fin;
             });
 
-            svg.innerHTML = '<svg viewBox="0 0 ' + T + ' ' + T + '" width="' + T
-                          + '" height="' + T + '" role="img" aria-label="'
+            let reperes = '';
+            [gauche, droite].forEach(function (cote) {
+                poserEtiquettes(cote, H, 18).forEach(function (l) {
+                    const bout = l.aDroite ? L - 44 : 44;
+                    // Le trait part de l'étiquette et finit sur la part : la
+                    // flèche pointe ainsi vers le secteur, pas vers le texte.
+                    reperes += '<polyline points="' + bout + ',' + l.y.toFixed(1)
+                            + ' ' + l.coudeX.toFixed(1) + ',' + l.y.toFixed(1)
+                            + ' ' + l.ancreX.toFixed(1) + ',' + l.ancreY.toFixed(1)
+                            + '" fill="none" stroke="' + l.couleur
+                            + '" stroke-width="1.5" marker-end="url(#pointe)"></polyline>'
+                            + '<text x="' + (l.aDroite ? bout + 6 : bout - 6) + '" y="'
+                            + (l.y + 4).toFixed(1) + '" text-anchor="'
+                            + (l.aDroite ? 'start' : 'end')
+                            + '" font-size="13" font-weight="700" fill="'
+                            + l.couleur + '">' + l.texte + '</text>';
+                });
+            });
+
+            svg.innerHTML = '<svg viewBox="0 0 ' + L + ' ' + H + '" width="' + L
+                          + '" height="' + H + '" role="img" aria-label="'
                           + 'Répartition des questionnaires complétés par tranche d\'âge">'
-                          + chemins + '</svg>';
+                          + '<defs><marker id="pointe" viewBox="0 0 8 8" refX="7" refY="4"'
+                          + ' markerWidth="5" markerHeight="5" orient="auto">'
+                          + '<path d="M 0 0 L 8 4 L 0 8 z" fill="context-stroke"></path>'
+                          + '</marker></defs>'
+                          + chemins + reperes + '</svg>';
 
             /* Le chiffre est ecrit a cote, jamais dans la part : une part
                etroite ne peut pas porter son etiquette, et c'est justement
@@ -549,9 +572,13 @@
                 return Math.max(acc, l[1], l[2]);
             }, 0);
 
+            /* La pastille devant chaque barre : à deux séries superposées,
+               retrouver laquelle est laquelle en remontant à la légende du
+               haut coûte un aller-retour du regard à chaque ligne. */
             const rang = function (valeur, classe) {
                 const largeur = max > 0 ? (100 * valeur / max) : 0;
                 return '<span class="compare-rang">'
+                     + '<span class="pastille ' + classe + '"></span>'
                      + '<span class="compare-piste"><span class="compare-part ' + classe
                      + '" style="width:' + largeur.toFixed(1) + '%"></span></span>'
                      + '<span class="compare-val">' + effectif(valeur) + '</span>'
