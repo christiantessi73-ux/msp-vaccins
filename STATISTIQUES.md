@@ -54,11 +54,16 @@ Le classeur contient trois feuilles :
   45 ans et plus, puis le détail mois par mois. Rien à saisir, tout se
   recalcule seul.
 
-  Deux graphiques s'y actualisent seuls : la répartition des questionnaires
-  complétés par tranche d'âge, et l'activité mois par mois (commencés face aux
-  complétés). Des colonnes, jamais de camembert : un secteur ne permet pas de
-  comparer des valeurs proches, ce qui est précisément la question posée. Leurs
-  deux couleurs restent distinguables en vision des couleurs déficiente.
+  Quatre graphiques s'y actualisent seuls : la répartition par tranche d'âge,
+  l'activité mois par mois, les doses par vaccin, et le rapprochement du besoin
+  détecté avec les doses administrées.
+
+  Des colonnes partout, sauf la répartition par âge, où la MSP a demandé un
+  camembert. La réserve d'usage reste vraie — un secteur ne permet pas de
+  comparer deux valeurs proches, et c'est précisément la question posée — mais
+  elle est levée autrement : le pourcentage est inscrit sur chaque part, donc
+  la comparaison se lit sur les chiffres et non sur la surface des secteurs.
+  Les couleurs restent distinguables en vision des couleurs déficiente.
 - **`Indicateurs`** — les compteurs du questionnaire, **réécrits** à chaque
   synchronisation depuis OVH. Toute saisie manuelle disparaît à l'heure
   suivante.

@@ -15,7 +15,7 @@
  * copie hors-site des compteurs, avec l'historique de versions de Google
  * Sheets par-dessus.
  *
- * ── Installation ────────────────────────────────────────────────────────
+ * Installation
  * 1. Paramètres du projet → Propriétés du script, ajouter trois
  *    propriétés. Elles ne sont pas dans ce fichier, donc pas dans Git :
  *
@@ -343,7 +343,6 @@ function installerTableauDeBord() {
     ['Questionnaires complétés',            "=SUM('" + src + "'!C2:C)",              '0'],
     ['Taux de complétion',                  "=IFERROR(B6/B5,\"\")",                  '0.0%'],
     ['Moyenne de vaccins par questionnaire', "=IFERROR(SUM('" + src + "'!H2:H)/B6,\"\")", '0.0'],
-    ['Part des 45 ans et plus',             "=IFERROR((SUM('" + src + "'!F2:F)+SUM('" + src + "'!G2:G))/B6,\"\")", '0.0%'],
     ['Couverture déclarée (vaccins déjà faits)', "=IFERROR(SUM('" + src + "'!I2:I)/SUM('" + src + "'!H2:H),\"\")", '0.0%'],
     ['Doses administrées à la MSP',          "=IFERROR(SUM('" + ACTES + "'!Q2:Q),0)",  '0']
   ];
@@ -377,7 +376,7 @@ function installerTableauDeBord() {
      .setNumberFormat('0').setHorizontalAlignment('right');
   }
 
-  /* ── Vaccins administrés ──────────────────────────────────────────────
+  /* Vaccins administrés
      Ces doses viennent de acte.html, saisies par l'équipe. Elles ne se
      divisent par rien de ce qui précède : un vaccin fait au comptoir n'a pas
      forcément suivi un questionnaire, et rien dans le dispositif ne permet
@@ -451,9 +450,14 @@ function installerTableauDeBord() {
 /**
  * Les deux graphiques du tableau de bord.
  *
- * Choix de forme : des colonnes, jamais de camembert. Un secteur ne permet pas
- * de comparer des valeurs proches, or c'est exactement ce qu'on demande au
- * lecteur du rapport (« quelle tranche d'âge touche-t-on le plus ? »).
+ * Des colonnes partout, sauf pour la répartition par âge, où la MSP a demandé
+ * un camembert.
+ *
+ * La réserve reste vraie : un secteur ne permet pas de comparer deux valeurs
+ * proches, et la question posée au lecteur du rapport en est une (« quelle
+ * tranche touche-t-on le plus ? »). Elle est levée autrement, en inscrivant
+ * le pourcentage sur chaque part : la comparaison se lit alors sur les
+ * chiffres, plus sur la surface des secteurs.
  *
  * Couleurs : #0E8FA8 et #EB6834, vérifiées pour rester distinguables en
  * vision des couleurs déficiente et suffisamment contrastées sur fond blanc.
@@ -470,31 +474,30 @@ function installerGraphiques(f, src, ligneTotalActes, debutMensuel) {
   var axeTexte = { color: ENCRE, fontSize: 10 };
   var titre = { color: '#14303D', fontSize: 13, bold: true };
 
-  // ── Qui fait le point : une seule série, donc aucune légende ──
+  /* Qui fait le point : quatre parts, donc une légende - une étiquette ne
+     tient pas dans un secteur étroit, et c'est justement celui qu'on cherche
+     à lire. Le pourcentage, lui, est inscrit sur la part. Quatre teintes
+     distinctes, vérifiées pour rester différenciables en vision des couleurs
+     déficiente. */
   var parAge = f.newChart()
-    .setChartType(Charts.ChartType.COLUMN)
+    .setChartType(Charts.ChartType.PIE)
     .addRange(f.getRange('D5:E9'))
     .setPosition(4, 8, 0, 0)
-    .setOption('title', 'Questionnaires complétés, par tranche d\'âge')
+    .setOption('title', 'Questionnaires completés, par tranche d’âge')
     .setOption('titleTextStyle', titre)
-    .setOption('colors', [TEAL])
-    .setOption('legend', { position: 'none' })
-    .setOption('bar', { groupWidth: '52%' })
+    .setOption('colors', [TEAL, '#4F72B7', ORANGE, '#7A5195'])
+    .setOption('legend', { position: 'right', textStyle: axeTexte })
+    .setOption('pieSliceText', 'percentage')
+    .setOption('pieSliceTextStyle', { color: '#FFFFFF', fontSize: 11, bold: true })
+    .setOption('pieSliceBorderColor', '#FFFFFF')
     .setOption('backgroundColor', '#FFFFFF')
     .setOption('width', 470)
-    .setOption('height', 250)
-    .setOption('chartArea', { left: 55, top: 50, width: '80%', height: '62%' })
-    .setOption('hAxis', { textStyle: axeTexte })
-    .setOption('vAxis', {
-      textStyle: axeTexte,
-      viewWindow: { min: 0 },
-      gridlines: { color: GRILLE },
-      minorGridlines: { count: 0 }
-    })
+    .setOption('height', 270)
+    .setOption('chartArea', { left: 10, top: 50, width: '92%', height: '78%' })
     .build();
   f.insertChart(parAge);
 
-  // ── Activité mois par mois : deux séries, donc légende obligatoire ──
+  // Activité mois par mois : deux séries, donc légende obligatoire
   // La source est « Indicateurs » et non le tableau du dessous : ses lignes
   // vides le sont réellement, là où les formules du tableau renvoient "",
   // ce qui créerait des colonnes fantômes.
@@ -526,7 +529,7 @@ function installerGraphiques(f, src, ligneTotalActes, debutMensuel) {
     .build();
   f.insertChart(parMois);
 
-  // ── Doses administrées : une seule série, barres horizontales ──
+  // Doses administrées : une seule série, barres horizontales
   // Quinze libellés de vaccins ne tiennent pas en abscisse sans se chevaucher
   // ou basculer à 45° ; en barres, ils se lisent à l'horizontale.
   var parVaccin = f.newChart()
@@ -551,7 +554,7 @@ function installerGraphiques(f, src, ligneTotalActes, debutMensuel) {
     .build();
   f.insertChart(parVaccin);
 
-  /* ── Besoin détecté et doses administrées, mois par mois ──
+  /* Besoin détecté et doses administrées, mois par mois
      Deux séries côte à côte, jamais empilées : empiler additionnerait des
      choses qui ne s'additionnent pas, et suggérerait que les doses sortent
      du besoin détecté. Rien ne relie les deux.

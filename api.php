@@ -7,7 +7,7 @@
  * mensuels. Aucune donnée individuelle ne lui parvient, et il n'existe
  * nulle part de ligne « un patient ».
  *
- * ── Pourquoi ici plutôt que chez Google ────────────────────────────────
+ * Pourquoi ici plutôt que chez Google
  * Une seule source de vérité. Le Google Sheet devient une vue, réécrite
  * depuis ce fichier, jamais saisie à la main : deux chiffres ne peuvent pas
  * diverger quand l'un est calculé depuis l'autre.
@@ -15,7 +15,7 @@
  * Accessoirement, les pages appellent désormais leur propre domaine : plus
  * de requête inter-origine ni de redirection vers googleusercontent.com.
  *
- * ── Où vivent les données ──────────────────────────────────────────────
+ * Où vivent les données
  * Dans DOSSIER, AU-DESSUS de la racine web. Ce n'est pas un détail :
  *
  *   · le miroir de déploiement ne touche que « www/ », donc son --delete
@@ -25,7 +25,7 @@
  * Un fichier de compteurs rangé dans « www/ » serait détruit à la première
  * mise à jour. C'est exactement ce qu'on cherche à éviter.
  *
- * ── La configuration n'est pas dans ce dépôt ───────────────────────────
+ * La configuration n'est pas dans ce dépôt
  * La clé partagée et le code de l'équipe vivent dans config.php, à créer
  * une fois à la main à côté des données. Voir CONFIG_EXEMPLE plus bas.
  * C'est un gain par rapport à Apps Script, où la clé était forcément
@@ -169,7 +169,7 @@ function assainir(array $recu): array
     return $propre;
 }
 
-// ── Contrôles avant toute ouverture de fichier ───────────────────────────
+// Contrôles avant toute ouverture de fichier
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -257,7 +257,7 @@ if ($evenement === 'import') {
     }
 }
 
-// ── Lecture, modification, écriture, sous verrou ─────────────────────────
+// Lecture, modification, écriture, sous verrou
 
 if (!is_dir(DOSSIER) && !@mkdir(DOSSIER, 0700, true)) {
     http_response_code(500);
