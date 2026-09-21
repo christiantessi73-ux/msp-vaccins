@@ -74,9 +74,13 @@ const VACCINS = [
  *
  *   <?php
  *   return [
- *       'cle' => 'msp-84feb9a16b719652c1d0286d',  // identique à STATS_CLE
- *       'pin' => '2431',                           // code de l'équipe
+ *       'cle'     => '…',   // identique à STATS_CLE dans les deux pages
+ *       'pin'     => '…',   // le code du comptoir, saisi sur acte.html
+ *       'lecture' => '…',   // pour le script de synchronisation
  *   ];
+ *
+ * Aucune valeur réelle ici : ce fichier est versionné, config.php ne l'est
+ * pas, et c'est toute la raison d'être de la séparation.
  */
 
 function repondre(string $jeton): never
